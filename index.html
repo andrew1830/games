@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-title" content="Games">
+<title>Andrew's Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root{
+  --bg:#f3efe9; --fg:#2b2420; --muted:#6f625a; --panel:#fbf8f4; --line:#ddd3c8; --accent:#b5481f;
+  --display:"Zilla Slab",Rockwell,Georgia,serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#1d1916; --fg:#efe7de; --muted:#a89a8e; --panel:#27211d; --line:#3d342e; --accent:#e8794b; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 var(--body);
+  padding:max(24px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
+main{max-width:640px;margin:0 auto}
+h1{font-family:var(--display);font-size:clamp(2rem,7vw,2.6rem);line-height:1.1;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 24px}
+.grid{display:grid;gap:12px}
+a.game{display:grid;grid-template-columns:56px 1fr;gap:14px;align-items:center;padding:14px 16px;border-radius:12px;
+  background:var(--panel);border:1px solid var(--line);color:inherit;text-decoration:none;transition:border-color .15s,transform .15s}
+a.game:hover{border-color:var(--accent);transform:translateY(-1px)}
+a.game:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.icon{width:56px;height:56px;border-radius:12px;display:grid;place-items:center;font-size:28px}
+.name{font-family:var(--display);font-weight:700;font-size:1.25rem;line-height:1.2}
+.desc{color:var(--muted);font-size:.95rem}
+</style>
+</head>
+<body>
+<main>
+  <h1>Games</h1>
+  <p class="sub">Tap one to play. Progress saves in this browser.</p>
+  <div class="grid">
+    <a class="game" href="peg/">
+      <span class="icon" style="background:#b47640">🔺</span>
+      <span><span class="name">Triangle Peg Game</span><br><span class="desc">Jump tees until one is left, with undo and hints.</span></span>
+    </a>
+    <a class="game" href="jacks-or-better/">
+      <span class="icon" style="background:#0b1f8c">🃏</span>
+      <span><span class="name">Jacks or Better Trainer</span><br><span class="desc">Video poker with a coach that checks every hold.</span></span>
+    </a>
+  </div>
+</main>
+</body>
+</html>

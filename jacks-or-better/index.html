@@ -1,0 +1,617 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Jacks or Better Trainer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: casino-machine screen on the left (fixed cobalt look in both themes), trainer coach panel on the right; stacks on phones. */
+:root{
+  --bg:#e9ecf3; --fg:#141826; --muted:#5b6176; --panel:#ffffff; --line:#d4d9e5; --soft:#f3f5fa;
+  --accent:#1f3fd1; --good:#1d8248; --bad:#c22f28; --warn:#a86b12;
+  --goodbg:#e5f4ea; --badbg:#fbe9e7;
+  /* machine (deliberately fixed) */
+  --scr:#0b1f8c; --scr2:#08166a; --amber:#ffd23f; --amberdim:#c9a536; --mred:#e3262d; --card:#fbfaf5; --cardred:#c8102e; --cardblk:#15161b; --bezel:#1a1c24;
+  --f-machine:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b0d15; --fg:#e5e8f1; --muted:#99a0b6; --panel:#141827; --line:#272c40; --soft:#1a1f31;
+  --accent:#8099ff; --good:#4cc283; --bad:#ff6d63; --warn:#e8b04a; --goodbg:#13281e; --badbg:#2e1716; --bezel:#05060a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b0d15; --fg:#e5e8f1; --muted:#99a0b6; --panel:#141827; --line:#272c40; --soft:#1a1f31;
+  --accent:#8099ff; --good:#4cc283; --bad:#ff6d63; --warn:#e8b04a; --goodbg:#13281e; --badbg:#2e1716; --bezel:#05060a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:minmax(0,560px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);max-width:600px}}
+h1,h2,h3{font-family:var(--f-machine);text-wrap:balance;margin:0;letter-spacing:.01em}
+button{font:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,.card:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* ---------- machine ---------- */
+.machine{background:var(--bezel);border-radius:18px;padding:10px;box-shadow:0 10px 30px rgba(10,15,40,.25)}
+.screen{background:linear-gradient(180deg,var(--scr) 0%,var(--scr2) 100%);border-radius:10px;padding:12px 12px 14px;color:#fff;font-family:var(--f-machine);display:grid;gap:12px}
+.paytable{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;border:2px solid var(--amberdim);border-radius:6px;padding:6px 10px;background:rgba(0,0,0,.18)}
+.pt-row{display:flex;justify-content:space-between;gap:8px;text-transform:uppercase;font-weight:600;font-size:15px;line-height:1.35;color:var(--amber);letter-spacing:.04em;padding:0 4px;border-radius:3px;font-variant-numeric:tabular-nums}
+.pt-row.win{background:var(--mred);color:#fff}
+.pt-row.empty{visibility:hidden}
+.title-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.game-name{font-size:22px;font-weight:700;color:#fff;letter-spacing:.06em;text-transform:uppercase}
+.game-name em{font-style:normal;color:var(--amber)}
+.ptab-tag{font-size:13px;color:#b9c4ff;letter-spacing:.08em;text-transform:uppercase}
+.cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.slot{display:grid;gap:4px;justify-items:stretch}
+.held-tag.ghost{opacity:.28}
+.held-tag{height:20px;text-align:center;font-weight:700;font-size:16px;letter-spacing:.12em;color:var(--amber);text-transform:uppercase}
+.card{position:relative;aspect-ratio:5/7;max-width:100%;border-radius:7px;background:var(--card);border:none;padding:0;box-shadow:0 2px 0 rgba(0,0,0,.35);color:var(--cardblk);transition:transform .12s ease;font-family:var(--f-machine)}
+.card.red{color:var(--cardred)}
+.card .crn{position:absolute;left:6%;top:4%;display:grid;justify-items:center;line-height:.9;font-weight:700;font-size:clamp(15px,4.6vw,24px)}
+.card .crn small{font-size:.8em}
+.card .pip{position:absolute;inset:30% 0 0;display:grid;place-items:center;font-size:clamp(28px,9vw,50px);line-height:1}
+.card .crn.br{left:auto;top:auto;right:6%;bottom:4%;transform:rotate(180deg)}
+.card.back{background:repeating-linear-gradient(45deg,#7f1d24 0 6px,#a3262f 6px 12px);border:3px solid var(--card)}
+.card.back > *{display:none}
+.card.held{transform:translateY(-3px)}
+.card.hint{box-shadow:0 0 0 3px var(--amber),0 2px 0 rgba(0,0,0,.35)}
+.card.dim{filter:brightness(.6) saturate(.7)}
+.card.deal{animation:flip .12s ease-out both}
+@keyframes flip{from{transform:rotateY(80deg)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.card.deal{animation:none}.card{transition:none}}
+.meter{display:flex;justify-content:space-between;gap:8px;text-transform:uppercase;font-weight:600;letter-spacing:.06em;font-size:16px;font-variant-numeric:tabular-nums}
+.meter b{color:var(--amber);font-weight:700}
+.msg{min-height:26px;text-align:center;font-size:20px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff}
+.msg.win{color:var(--amber)}
+.controls{display:grid;grid-template-columns:1fr 1fr 2fr;gap:8px;margin-top:10px}
+.mbtn{border:none;border-radius:8px;padding:12px 8px;font-family:var(--f-machine);font-weight:700;font-size:19px;letter-spacing:.08em;text-transform:uppercase;background:#2b2f3d;color:#e9ebf2;box-shadow:inset 0 -3px 0 rgba(0,0,0,.35)}
+.mbtn.primary{background:var(--amber);color:#1b1600}
+.mbtn:disabled{opacity:.45;cursor:default}
+.keys{color:#8f96ab;font-size:12px;text-align:center;margin-top:8px;font-family:var(--f-body)}
+
+/* ---------- trainer ---------- */
+.coach{display:grid;gap:14px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.stat{display:grid;gap:2px}
+.stat .v{font-family:var(--f-machine);font-size:26px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.stat .l{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+@media (max-width:420px){.stat .v{font-size:22px}}
+.fb-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pill{font-family:var(--f-machine);font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:999px}
+.pill.ok{background:var(--goodbg);color:var(--good)}
+.pill.no{background:var(--badbg);color:var(--bad)}
+.pill.wait{background:var(--soft);color:var(--muted)}
+.fb-cost{font-weight:700;color:var(--bad)}
+.fb h2{font-size:24px}
+.hold-line{display:grid;grid-template-columns:78px minmax(0,1fr);gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.hold-line:first-of-type{border-top:none}
+.hl-k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.hl-v{min-width:0}
+.hl-v .lab{font-weight:700}
+.hl-v .ev{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.mini{display:inline-flex;gap:3px;flex-wrap:wrap;vertical-align:middle;margin-right:6px}
+.mc{display:inline-grid;place-items:center;min-width:30px;height:38px;padding:0 3px;border-radius:4px;background:var(--card);border:1px solid #c9ccd6;font-family:var(--f-machine);font-weight:700;font-size:15px;line-height:1;color:var(--cardblk)}
+.mc.red{color:var(--cardred)}
+.mc.off{opacity:.28}
+.why{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:8px}
+.why li{padding-left:14px;position:relative;max-width:62ch}
+.why li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{border:1px solid var(--line);background:var(--soft);color:var(--fg);border-radius:8px;padding:9px 14px;font-weight:700;font-size:14px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.primary{color:#0b0d15}}
+:root[data-theme="dark"] .btn.primary{color:#0b0d15}
+details{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--accent)}
+.tbl-wrap{overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+tr.me td{color:var(--bad);font-weight:700}
+tr.best td{color:var(--good);font-weight:700}
+.intro p{margin:6px 0 0;max-width:62ch;color:var(--muted)}
+.intro h2{font-size:22px}
+.settings{display:grid;gap:12px}
+.set-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.set-row label{font-weight:700;font-size:14px}
+.set-row .sub{display:block;font-weight:400;color:var(--muted);font-size:12px}
+select{font:inherit;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--soft);color:var(--fg)}
+.switch{position:relative;width:46px;height:26px;flex:none}
+.switch input{opacity:0;width:100%;height:100%;margin:0;position:absolute;cursor:pointer}
+.switch span{position:absolute;inset:0;border-radius:999px;background:var(--line);transition:background .15s;pointer-events:none}
+.switch span::after{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#fff;transition:transform .15s}
+.switch input:checked + span{background:var(--accent)}
+.switch input:checked + span::after{transform:translateX(20px)}
+.switch input:focus-visible + span{outline:3px solid var(--accent);outline-offset:2px}
+.sec-h{font-size:18px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sec-h small{font-family:var(--f-body);font-size:12px;color:var(--muted);font-weight:400}
+.log{list-style:none;margin:0;padding:0;display:grid}
+.log li{padding:10px 0;border-top:1px solid var(--line);display:grid;gap:4px}
+.log li:first-child{border-top:none}
+.log .lt{font-size:13px;color:var(--muted)}
+.log .lt b{color:var(--fg)}
+.empty-note{color:var(--muted);font-size:14px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.linkbtn{background:none;border:none;color:var(--accent);font-weight:700;padding:0;font-size:13px}
+</style>
+<div style="max-width:1080px;margin:0 auto;padding:0 16px"><a href="../" style="display:inline-block;margin:12px 0 0;font:700 14px system-ui,sans-serif;color:inherit;opacity:.7;text-decoration:none">&larr; All games</a></div>
+<div class="wrap">
+  <section class="machine" aria-label="Video poker machine">
+    <div class="screen">
+      <div class="title-row"><div class="game-name">Jacks <em>or</em> Better</div><div class="ptab-tag" id="ptTag">8/5 · 97.30%</div></div>
+      <div class="paytable" id="paytable"></div>
+      <div class="msg" id="msg" aria-live="polite">Press Deal</div>
+      <div class="cards" id="cards"></div>
+      <div class="meter"><span>Win <b id="win">0</b></span><span>Bet <b>5</b></span><span>Credit <b id="credit">1000</b></span></div>
+    </div>
+    <div class="controls">
+      <button class="mbtn" id="hintBtn" type="button" disabled>Hint</button>
+      <button class="mbtn" id="refillBtn" type="button">+1000</button>
+      <button class="mbtn primary" id="dealBtn" type="button">Deal</button>
+    </div>
+    <div class="keys">Keys: 1–5 hold · Space deal/draw · H hint</div>
+  </section>
+
+  <aside class="coach">
+    <div class="panel">
+      <div class="stats">
+        <div class="stat"><span class="v" id="sHands">0</span><span class="l">Hands</span></div>
+        <div class="stat"><span class="v" id="sAcc">—</span><span class="l">Accuracy</span></div>
+        <div class="stat"><span class="v" id="sLost">0.0</span><span class="l">Coins lost</span></div>
+        <div class="stat"><span class="v" id="sHints">0</span><span class="l">Hints</span></div>
+      </div>
+    </div>
+    <div class="panel fb" id="feedback" aria-live="polite"></div>
+    <div class="panel settings">
+      <div class="set-row"><label for="ptSel">Pay table<span class="sub">Full house / flush per coin</span></label>
+        <select id="ptSel"><option value="85">8/5 (97.30%)</option><option value="96">9/6 (99.54%)</option></select></div>
+      <div class="set-row"><label for="pauseTgl">Stop me before the draw<span class="sub">Fix a mistake before cards are replaced</span></label>
+        <span class="switch"><input type="checkbox" id="pauseTgl" checked><span></span></span></div>
+      <div class="set-row"><label>Session stats<span class="sub">Saved in this browser</span></label><button class="btn" id="resetBtn" type="button">Reset stats</button></div>
+    </div>
+    <div class="panel">
+      <h3 class="sec-h">Recent mistakes <small id="logCount"></small></h3>
+      <ul class="log" id="log"></ul>
+    </div>
+  </aside>
+</div>
+<script>
+function vpEngine(){
+  function score(a,b,c,d,e){
+    const ra=a>>2, rb=b>>2, rc=c>>2, rd=d>>2, re=e>>2;
+    const mask=(1<<ra)|(1<<rb)|(1<<rc)|(1<<rd)|(1<<re);
+    let m=mask, n=0; while(m){m&=m-1;n++;}
+    if(n===5){
+      const flush=((a^b)&3)===0&&((a^c)&3)===0&&((a^d)&3)===0&&((a^e)&3)===0;
+      const low=mask&-mask;
+      const straight=(mask===low*31)||mask===0x100F;
+      if(straight){ if(flush) return mask===0x1F00?9:8; return 4; }
+      return flush?5:0;
+    }
+    if(n===4){
+      let pr;
+      if(ra===rb||ra===rc||ra===rd||ra===re) pr=ra;
+      else if(rb===rc||rb===rd||rb===re) pr=rb;
+      else if(rc===rd||rc===re) pr=rc; else pr=rd;
+      return pr>=9?1:0;
+    }
+    if(n===3){
+      const ma=(ra===rb)+(ra===rc)+(ra===rd)+(ra===re);
+      const mb=(rb===ra)+(rb===rc)+(rb===rd)+(rb===re);
+      const mc=(rc===ra)+(rc===rb)+(rc===rd)+(rc===re);
+      return (ma===2||mb===2||mc===2)?3:2;
+    }
+    const ma=(ra===rb)+(ra===rc)+(ra===rd)+(ra===re);
+    return (ma===3||ma===0)?7:6;
+  }
+  function analyze(hand){
+    const D=[]; for(let c=0;c<52;c++) if(hand.indexOf(c)<0) D.push(c);
+    const L=D.length, out=[];
+    for(let mask=0;mask<32;mask++){
+      const h=[]; for(let i=0;i<5;i++) if((mask>>i)&1) h.push(hand[i]);
+      const C=new Float64Array(10); let t=0;
+      const need=5-h.length;
+      if(need===0){C[score(h[0],h[1],h[2],h[3],h[4])]++;t=1;}
+      else if(need===1){const a=h[0],b=h[1],c=h[2],d=h[3];for(let i=0;i<L;i++){C[score(a,b,c,d,D[i])]++;t++;}}
+      else if(need===2){const a=h[0],b=h[1],c=h[2];for(let i=0;i<L;i++)for(let j=i+1;j<L;j++){C[score(a,b,c,D[i],D[j])]++;t++;}}
+      else if(need===3){const a=h[0],b=h[1];for(let i=0;i<L;i++)for(let j=i+1;j<L;j++){const di=D[i],dj=D[j];for(let k=j+1;k<L;k++){C[score(a,b,di,dj,D[k])]++;t++;}}}
+      else if(need===4){const a=h[0];for(let i=0;i<L;i++){const di=D[i];for(let j=i+1;j<L;j++){const dj=D[j];for(let k=j+1;k<L;k++){const dk=D[k];for(let l=k+1;l<L;l++){C[score(a,di,dj,dk,D[l])]++;t++;}}}}}
+      else {for(let i=0;i<L;i++){const di=D[i];for(let j=i+1;j<L;j++){const dj=D[j];for(let k=j+1;k<L;k++){const dk=D[k];for(let l=k+1;l<L;l++){const dl=D[l];for(let p=l+1;p<L;p++){C[score(di,dj,dk,dl,D[p])]++;t++;}}}}}}
+      out.push({mask,counts:Array.from(C),total:t});
+    }
+    return out;
+  }
+  return {score,analyze};
+}
+(function(){
+const engine = vpEngine();
+const NAMES=['No win','Jacks or Better','Two Pair','Three of a Kind','Straight','Flush','Full House','Four of a Kind','Straight Flush','Royal Flush'];
+const TABLES={'96':[0,1,2,3,4,6,9,25,50,800],'85':[0,1,2,3,4,5,8,25,50,800]};
+const TAGS={'96':'9/6 · 99.54%','85':'8/5 · 97.30%'};
+const RN=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+const RW=['Twos','Threes','Fours','Fives','Sixes','Sevens','Eights','Nines','Tens','Jacks','Queens','Kings','Aces'];
+const SU=['♠︎','♥︎','♦︎','♣︎'];
+const isRed=c=>(c&3)===1||(c&3)===2;
+const cName=c=>RN[c>>2]+SU[c&3];
+const $=id=>document.getElementById(id);
+
+/* ---------- persistence ---------- */
+const DEF={credits:1000,hands:0,correct:0,lost:0,hints:0,log:[],pt:'85',pause:true,ptDefault85:true};
+let P=Object.assign({},DEF);
+try{const raw=localStorage.getItem('jobTrainer.v1'); if(raw){const o=JSON.parse(raw); if(!o.ptDefault85){o.pt='85'; o.ptDefault85=true;} P=Object.assign({},DEF,o);}}catch(e){}
+function save(){try{localStorage.setItem('jobTrainer.v1',JSON.stringify(P));}catch(e){}}
+const pays=()=>TABLES[P.pt]||TABLES['96'];
+
+/* ---------- analysis worker ---------- */
+let worker=null; const pending=new Map(); let reqId=0;
+try{
+  const src=vpEngine.toString()+';const E=vpEngine();onmessage=function(e){postMessage({id:e.data.id,res:E.analyze(e.data.hand)});};';
+  worker=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));
+  worker.onmessage=e=>{const p=pending.get(e.data.id); if(p){pending.delete(e.data.id); p.resolve(e.data.res);}};
+  worker.onerror=()=>{worker=null; pending.forEach(p=>p.resolve(engine.analyze(p.hand))); pending.clear();};
+}catch(e){worker=null;}
+function requestAnalysis(hand){
+  return new Promise(resolve=>{
+    const id=++reqId;
+    if(worker){ pending.set(id,{resolve,hand}); try{worker.postMessage({id,hand});return;}catch(e){pending.delete(id);} }
+    setTimeout(()=>resolve(engine.analyze(hand)),40);
+  });
+}
+
+/* ---------- game state ---------- */
+const S={phase:'idle',deck:[],hand:[],held:[false,false,false,false,false],analysis:null,aP:null,firstMask:null,hintShown:false,resultCat:0,win:0,dealAnim:false,drawnMask:null};
+function shuffle(){
+  const d=[...Array(52).keys()]; const r=new Uint32Array(52);
+  try{crypto.getRandomValues(r);}catch(e){for(let i=0;i<52;i++) r[i]=Math.floor(Math.random()*4294967296);}
+  for(let i=51;i>0;i--){const j=r[i]%(i+1); [d[i],d[j]]=[d[j],d[i]];}
+  return d;
+}
+const curMask=()=>S.held.reduce((m,h,i)=>m|(h?1<<i:0),0);
+const cardsOf=(hand,mask)=>hand.filter((_,i)=>(mask>>i)&1);
+function ranked(){
+  if(!S.analysis) return null;
+  const p=pays();
+  return S.analysis.map(r=>({mask:r.mask,counts:r.counts,total:r.total,n:popc(r.mask),ev:r.counts.reduce((s,v,i)=>s+v*p[i],0)/r.total}))
+    .sort((a,b)=>Math.abs(b.ev-a.ev)>1e-12?b.ev-a.ev:a.n-b.n);
+}
+function popc(m){let n=0;while(m){m&=m-1;n++;}return n;}
+const EPS=1e-9;
+
+/* ---------- hold classification ---------- */
+function spanOf(rs){
+  if(new Set(rs).size!==rs.length) return {ok:false,width:99};
+  let w=Math.max(...rs)-Math.min(...rs);
+  if(rs.includes(12)){const a=rs.map(r=>r===12?-1:r); w=Math.min(w,Math.max(...a)-Math.min(...a));}
+  return {ok:w<=4,width:w};
+}
+function classify(cards){
+  const k=cards.length;
+  if(!k) return {key:'none',label:'Discard all five'};
+  const rs=cards.map(c=>c>>2), ss=cards.map(c=>c&3);
+  const cnt={}; rs.forEach(r=>cnt[r]=(cnt[r]||0)+1);
+  const maxc=Math.max(...Object.values(cnt));
+  const pairs=Object.keys(cnt).filter(r=>cnt[r]===2).map(Number);
+  if(k===5){const cat=engine.score(cards[0],cards[1],cards[2],cards[3],cards[4]); if(cat>=4) return {key:'pat'+cat,label:'Pat '+NAMES[cat].toLowerCase()};}
+  const kk=n=>n?` + ${n} kicker${n>1?'s':''}`:'';
+  if(maxc===4) return {key:'quads',label:'Four of a kind'+kk(k-4),kick:k>4};
+  if(maxc===3) return {key:'trips',label:'Three of a kind'+(pairs.length?'':kk(k-3)),kick:k>3&&!pairs.length};
+  if(pairs.length===2) return {key:'2p',label:'Two pair'+kk(k-4),kick:k>4};
+  if(pairs.length===1){const pr=pairs[0],hi=pr>=9; return {key:hi?'hp':'lp',label:`${hi?'High':'Low'} pair (${RW[pr]})`+kk(k-2),kick:k>2};}
+  const suited=ss.every(s=>s===ss[0]);
+  const hiN=rs.filter(r=>r>=9).length;
+  const sp=spanOf(rs);
+  if(k===5) return {key:'five',label:'All five cards (no paying hand)'};
+  if(suited&&k>=2&&rs.every(r=>r>=8)) return {key:'rf'+k,label:`${k} to a royal flush`};
+  if(suited&&k>=3&&sp.ok) return {key:'sf'+k,label:`${k} to a straight flush`};
+  if(suited&&k>=3) return {key:'fl'+k,label:`${k} to a flush`};
+  if(k===4&&sp.ok){const out=sp.width===3&&!rs.includes(12); return {key:out?'os4':'is4',label:`4 to an ${out?'outside':'inside'} straight`+(hiN?` (${hiN} high card${hiN>1?'s':''})`:''),hiN};}
+  if(k===3&&sp.ok&&hiN<3) return {key:'st3',label:'3 to a straight'};
+  if(hiN===k) return {key:'hc'+k,label:k===1?`Single high card (${RN[rs[0]]})`:`${k} ${suited?'suited':'unsuited'} high cards`};
+  if(suited&&k===2) return {key:'s2',label:'2 suited cards'};
+  if(hiN) return {key:'junk',label:`${hiN} high card${hiN>1?'s':''} + ${k-hiN} other${k-hiN>1?'s':''}`};
+  return {key:'junk',label:k===1?'Single low card':`${k} low cards`};
+}
+const REASON={
+  pat9:'A pat royal flush. Keep all five and collect 4,000.',
+  pat8:'A pat straight flush pays 250 coins. No draw beats it.',
+  pat6:'A pat full house pays now, and no draw from it is worth more.',
+  pat5:'A pat flush pays now. Only four to a royal is worth breaking it for.',
+  pat4:'A pat straight pays now. Only four to a royal is worth breaking it for.',
+  quads:'Four of a kind is already paid. Hold the four; the fifth card cannot change the result.',
+  rf4:'Four to a royal averages about 18 coins per coin bet. One card makes 4,000 coins, and flush, straight and high-pair outs come along with it. It is worth breaking a pat flush, straight or high pair for.',
+  sf4:'Four to a straight flush has outs to a 250-coin straight flush plus flush and straight outs. It beats two pair and a high pair.',
+  trips:'Three of a kind pays now. Drawing two gives you shots at a full house and four of a kind.',
+  '2p':'Two pair pays now, and 4 of the 47 cards fill a full house. Discard the fifth card.',
+  hp:'A high pair already pays. Drawing three adds chances at two pair, trips, a full house and quads.',
+  rf3:'Three to a royal keeps the 4,000-coin royal alive and adds flush, straight and high-pair chances.',
+  fl4:'Four to a flush: 9 of the 47 remaining cards complete it, about 19% of the time.',
+  lp:'A low pair does not pay yet, but drawing three gives solid chances at two pair, trips, a full house and quads. It beats weak draws and unsuited high cards.',
+  os4:'Four to an outside straight: 8 cards complete it, one at each end, about 17% of the time.',
+  is4:'Four to an inside straight with high cards: 4 cards complete it, and the high cards can also pair into Jacks or Better.',
+  sf3:'Three to a straight flush keeps straight-flush, flush and straight chances alive at once.',
+  rf2:'Two suited royal cards keep a royal possible and can each pair into Jacks or Better.',
+  hc4:'Four high cards that make an inside straight give both straight outs and many ways to pair a high card.',
+  hc3:'Three unsuited high cards (J, Q, K) give three ways to pair into a win plus straight chances.',
+  hc2:'Two high cards give two different ways to pair into Jacks or Better.',
+  hc1:'One high card is worth holding: pairing it pays, and the four new cards still bring straight and flush chances.',
+  none:'Nothing here is worth keeping. Five fresh cards return more on average than holding weak low cards.'
+};
+const listCards=cs=>cs.map(cName).join(' ');
+function pct(p){if(p<=0) return '0%'; if(p>=0.01) return (p*100).toFixed(1)+'%'; return '1 in '+Math.round(1/p).toLocaleString();}
+const winP=r=>1-r.counts[0]/r.total;
+
+function tipsFor(hand,um,bm,U,B,rU,rB){
+  const uc=cardsOf(hand,um), bc=cardsOf(hand,bm);
+  const extra=uc.filter(c=>!bc.includes(c)), missing=bc.filter(c=>!uc.includes(c));
+  const made=k=>['hp','2p','trips','quads'].includes(k)||k.startsWith('pat');
+  const T=[];
+  if(U.kick&&missing.length===0){
+    const what=U.key==='2p'?'two pair':U.key==='trips'?'three of a kind':U.key==='quads'?'quads':'a pair';
+    T.push(`Don't keep a kicker with ${what}. ${listCards(extra)} takes away a draw that could make trips, a full house or quads.`);
+  }
+  if(B.key==='rf4'&&(made(U.key)||U.key==='fl4'||U.key==='os4')) T.push(`Break the ${U.label.replace(/^./,ch=>ch.toLowerCase())} for four to a royal. The royal draw is worth far more on average.`);
+  else if(made(B.key)&&missing.length){
+    if(B.key==='hp'&&(U.key==='fl4'||U.key==='os4'||U.key==='is4')) T.push(`Keep the high pair over ${U.label.replace(/^./,ch=>ch.toLowerCase())}. The pair already pays and can improve; the draw usually misses.`);
+    else T.push(`You broke up a ${B.label.replace(/^./,ch=>ch.toLowerCase()).replace(/ \+.*$/,'')}. Keep it.`);
+  }
+  if(B.key==='lp'&&missing.length) T.push(`Keep the low pair. It beats unsuited high cards, three to a flush and inside straights because it can improve to two pair, trips, a full house or quads.`);
+  if(B.key==='fl4'&&(U.key==='lp'||U.key.startsWith('hc'))) T.push(`Four to a flush beats ${U.label.replace(/^./,ch=>ch.toLowerCase())}: the flush comes ${pct(rB.counts[5]/rB.total)} of the time and pays 6 per coin.`);
+  if(B.key==='os4'&&U.key.startsWith('hc')) T.push('An open-ended straight draw (8 outs) beats holding high cards alone.');
+  const uAce=uc.some(c=>(c>>2)===12), bAce=bc.some(c=>(c>>2)===12);
+  const aceDrop=uAce&&!bAce&&U.key.startsWith('hc')&&(B.key.startsWith('hc')||B.key==='junk');
+  if(aceDrop){
+    const su=straightsWith(uc), sb=straightsWith(bc);
+    const swap=missing.length?` and keep ${listCards(missing)}`:'';
+    T.push(`Drop the ace${swap}. An ace only fits the top straight (10-J-Q-K-A) or the wheel (A-2-3-4-5), and it pairs into a win no more often than a K, Q or J. ${listCards(bc)} can still make ${sb} different straight${sb===1?'':'s'}; ${listCards(uc)} can make only ${su}.`);
+  }
+  if(!aceDrop&&extra.some(c=>(c>>2)===8)&&!bc.some(c=>(c>>2)===8)) T.push('Drop the 10. A pair of 10s does not pay, so an unsuited 10 adds very little.');
+  if(U.key==='is4'&&(U.hiN||0)<2&&B.key!=='is4') T.push('Inside straights are thin: only 4 of the 47 cards fill them.');
+  if(U.key==='fl3'&&!B.key.startsWith('fl')) T.push(`Three to a plain flush completes only ${pct(rU.counts[5]/rU.total)} of the time.`);
+  if(U.key==='st3'||U.key==='s2'||U.key==='junk'&&!U.label.includes('high')) T.push(`${U.label} is a weak hold: low cards do not pay when they pair.`);
+  if(U.key==='none'&&B.key!=='none') T.push(`Throwing all five away gave up ${B.label.replace(/^./,ch=>ch.toLowerCase())}.`);
+  if(B.key==='none'&&U.key!=='none') T.push(`None of these cards are worth holding. A full redraw averages ${rB.ev.toFixed(3)} per coin, more than holding ${listCards(uc)}.`);
+  if(!T.length&&missing.length&&!extra.length) T.push(`You threw away ${listCards(missing)}. Keep ${missing.length>1?'them':'it'}.`);
+  if(!T.length&&extra.length&&!missing.length) T.push(`Let go of ${listCards(extra)}. Each extra card you hold is one fewer chance to draw something better.`);
+  if(!T.length) T.push(`${B.label} is a stronger start here than ${U.label.replace(/^./,ch=>ch.toLowerCase())}.`);
+  return T.slice(0,2);
+}
+function straightsWith(cards){
+  const rs=[...new Set(cards.map(c=>c>>2))]; if(rs.length!==cards.length) return 0;
+  let n=0; for(let st=-1;st<=8;st++){const w=[0,1,2,3,4].map(k=>st+k<0?12:st+k); if(rs.every(r=>w.includes(r))) n++;}
+  return n;
+}
+const PHR=['','a high pair (Jacks or Better)','two pair','three of a kind','a straight','a flush','a full house','four of a kind','a straight flush','a royal flush'];
+function mathLine(rU,rB){
+  const p=pays(), d=[];
+  for(let c=1;c<=9;c++){const pu=rU.counts[c]/rU.total, pb=rB.counts[c]/rB.total; d.push({c,pu,pb,v:p[c]*(pb-pu)});}
+  const gap=rB.ev-rU.ev;
+  const pos=d.filter(x=>x.v>0).sort((a,b)=>b.v-a.v), neg=d.filter(x=>x.v<0).sort((a,b)=>a.v-b.v);
+  if(!pos.length) return '';
+  const top=pos[0];
+  const fq=x=>x<=0?'never':x>=0.01?(x*100).toFixed(1)+'% of the time':'once every '+Math.round(1/x).toLocaleString()+' hands';
+  const fv=v=>'+'+(v>=0.001?v.toFixed(3):v.toFixed(4));
+  let t=`<b>Where the gap comes from:</b> the best hold makes ${PHR[top.c]} ${fq(top.pb)}; yours makes it ${fq(top.pu)}. That's worth ${fv(top.v)} per coin`;
+  if(pos[1]&&pos[1].v>gap*0.2) t+=`, and ${PHR[pos[1].c]} adds ${fv(pos[1].v)} (${fq(pos[1].pb).replace(' of the time','')} vs ${fq(pos[1].pu).replace(' of the time','')})`;
+  t+='.';
+  if(neg[0]&&-neg[0].v>gap*0.15) t+=` Your hold makes ${PHR[neg[0].c]} more often (${fq(neg[0].pu).replace(' of the time','')} vs ${fq(neg[0].pb).replace(' of the time','')}), but that only gets back ${(-neg[0].v).toFixed(3)}.`;
+  const same=d.filter(x=>Math.abs(x.v)<1e-9&&x.pu>0).map(x=>PHR[x.c]);
+  if(same.length>=2&&pos.length===1&&!neg.length) t+=` The odds of ${same.slice(0,3).join(', ')} are identical for both holds.`;
+  return t;
+}
+function reasonFor(B){
+  return REASON[B.key]||REASON[B.key.replace(/\d$/,'')]||'For this exact hand, this hold has the highest average return of all 32 options.';
+}
+
+/* ---------- actions ---------- */
+function deal(){
+  if(S.phase==='dealt'||S.phase==='review') return;
+  if(P.credits<5){S.msg='Add credits';render();return;}
+  P.credits-=5; save();
+  S.deck=shuffle(); S.hand=S.deck.slice(0,5); S.held=[false,false,false,false,false];
+  S.phase='dealt'; S.analysis=null; S.firstMask=null; S.hintShown=false; S.resultCat=0; S.win=0; S.dealAnim=true; S.drawnMask=null; S.dealtIdx=[0,1,2,3,4];
+  const hand=S.hand.slice();
+  S.aP=requestAnalysis(hand).then(a=>{ if(S.hand.join()===hand.join()){S.analysis=a; render();} return a; });
+  render();
+}
+function toggle(i){
+  if(S.phase!=='dealt'&&S.phase!=='review') return;
+  S.held[i]=!S.held[i]; S.dealAnim=false; render();
+}
+async function drawClick(){
+  if(S.phase==='idle'||S.phase==='done'){deal();return;}
+  if(S.busy) return;
+  if(!S.analysis){S.busy=true; render(); await S.aP; S.busy=false;}
+  const R=ranked(), mask=curMask(), mine=R.find(r=>r.mask===mask), best=R[0];
+  const ok=best.ev-mine.ev<EPS;
+  if(S.firstMask===null){
+    S.firstMask=mask; P.hands++;
+    if(ok) P.correct++;
+    else{
+      const cost=(best.ev-mine.ev)*5; P.lost+=cost;
+      P.log.unshift({cards:S.hand.slice(),u:mask,b:best.mask,cost,ul:classify(cardsOf(S.hand,mask)).label,bl:classify(cardsOf(S.hand,best.mask)).label,hint:S.hintShown,pt:P.pt});
+      P.log=P.log.slice(0,25);
+    }
+    save();
+  }
+  if(!ok&&P.pause&&S.phase==='dealt'){S.phase='review'; S.dealAnim=false; render(); return;}
+  doDraw();
+}
+function doDraw(){
+  let next=5; S.dealtIdx=[];
+  S.drawnMask=curMask();
+  for(let i=0;i<5;i++) if(!S.held[i]){S.hand[i]=S.deck[next++]; S.dealtIdx.push(i);}
+  const h=S.hand; S.resultCat=engine.score(h[0],h[1],h[2],h[3],h[4]);
+  S.win=pays()[S.resultCat]*5; P.credits+=S.win; save();
+  S.phase='done'; S.dealAnim=true; render();
+}
+async function hint(){
+  if(S.phase!=='dealt') return;
+  if(!S.analysis) await S.aP;
+  if(!S.hintShown&&S.firstMask===null){P.hints++; save();}
+  S.hintShown=true; S.dealAnim=false; render();
+}
+function useBest(){
+  const R=ranked(); if(!R) return;
+  for(let i=0;i<5;i++) S.held[i]=!!((R[0].mask>>i)&1);
+  S.dealAnim=false; render();
+}
+
+/* ---------- rendering ---------- */
+function cardHTML(c,i){
+  const red=isRed(c), r=RN[c>>2], s=SU[c&3];
+  return `<span class="crn"><span>${r}</span><small>${s}</small></span><span class="pip">${s}</span><span class="crn br"><span>${r}</span><small>${s}</small></span>`;
+}
+function mini(hand,mask,showOff){
+  return `<span class="mini">${hand.map((c,i)=>{const on=(mask>>i)&1; if(!showOff&&!on) return ''; return `<span class="mc${isRed(c)?' red':''}${on?'':' off'}">${cName(c)}</span>`;}).join('')}</span>`;
+}
+function renderPaytable(){
+  const p=pays();
+  const order=[9,8,7,6,5,4,3,2,1];
+  const left=order.slice(0,5), right=order.slice(5);
+  const row=c=>c==null?'<div class="pt-row empty">.</div>':`<div class="pt-row${S.phase==='done'&&S.resultCat===c?' win':''}"><span>${NAMES[c]}</span><span>${(p[c]*5).toLocaleString()}</span></div>`;
+  let h=''; for(let i=0;i<5;i++){h+=row(left[i])+row(right[i]);}
+  $('paytable').innerHTML=h;
+  $('ptTag').textContent=TAGS[P.pt];
+}
+function winningIdx(hand,cat){
+  if(!cat) return [];
+  if(cat>=4&&cat!==7) return [0,1,2,3,4];
+  const cnt={}; hand.forEach(c=>{const r=c>>2; cnt[r]=(cnt[r]||0)+1;});
+  return hand.map((c,i)=>{const n=cnt[c>>2]; const keep=cat===7?n===4:cat===3?n===3:cat===2?n===2:(n===2&&(c>>2)>=9); return keep?i:-1;}).filter(i=>i>=0);
+}
+function renderCards(){
+  const R=S.hintShown&&S.analysis?ranked():null;
+  const box=$('cards'); let h=''; const winIdx=S.phase==='done'?winningIdx(S.hand,S.resultCat):[];
+  for(let i=0;i<5;i++){
+    const c=S.hand[i];
+    const showBack=S.phase==='idle';
+    const held=S.held[i]&&(S.phase==='dealt'||S.phase==='review');
+    const hintOn=R&&((R[0].mask>>i)&1)&&S.phase==='dealt';
+    const anim=S.dealAnim&&S.dealtIdx&&S.dealtIdx.includes(i);
+    const dim=S.phase==='done'&&!winIdx.includes(i);
+    const playable=S.phase==='dealt'||S.phase==='review';
+    h+=`<div class="slot"><div class="held-tag${!held&&playable?' ghost':''}">${held?'Held':playable?'Hold':''}</div><button type="button" class="card${showBack?' back':''}${c!=null&&isRed(c)?' red':''}${held?' held':''}${hintOn?' hint':''}${anim?' deal':''}${dim?' dim':''}" data-i="${i}" ${playable?'':'tabindex="-1"'} aria-pressed="${held}" aria-label="${showBack?'Card face down':cName(c)+(held?', held':'')}" style="${anim?`animation-delay:${S.dealtIdx.indexOf(i)*25}ms`:''}">${showBack?'<span></span>':cardHTML(c,i)}</button></div>`;
+  }
+  box.innerHTML=h;
+}
+function renderMachine(){
+  renderPaytable(); renderCards();
+  $('credit').textContent=P.credits.toLocaleString();
+  $('win').textContent=S.win.toLocaleString();
+  const m=$('msg'); m.classList.toggle('win',S.phase==='done'&&S.win>0);
+  m.textContent=S.msg?S.msg:S.phase==='idle'?'Press Deal':S.phase==='dealt'?(S.busy?'Checking…':'Select cards to hold'):S.phase==='review'?'Check the coach':(S.win>0?`${NAMES[S.resultCat]}  ·  Win ${S.win}`:'Game over');
+  S.msg=null;
+  const db=$('dealBtn'); db.textContent=(S.phase==='dealt'||S.phase==='review')?'Draw':'Deal';
+  db.disabled=(S.phase==='idle'||S.phase==='done')&&P.credits<5;
+  $('hintBtn').disabled=S.phase!=='dealt'||S.hintShown;
+  $('refillBtn').disabled=S.phase==='dealt'||S.phase==='review';
+}
+function renderStats(){
+  $('sHands').textContent=P.hands.toLocaleString();
+  $('sAcc').textContent=P.hands?Math.round(100*P.correct/P.hands)+'%':'—';
+  $('sLost').textContent=P.lost<100?P.lost.toFixed(1):Math.round(P.lost).toLocaleString();
+  $('sHints').textContent=P.hints;
+}
+function holdLine(k,hand,r,lab){
+  return `<div class="hold-line"><div class="hl-k">${k}</div><div class="hl-v">${r.mask?mini(hand,r.mask,false):'<span class="mini"><span class="mc off">—</span></span>'}<div class="lab">${lab}</div><div class="ev">EV ${r.ev.toFixed(4)} per coin · wins ${pct(winP(r))}</div></div></div>`;
+}
+function outcomeTable(mine,best){
+  const rows=[];
+  for(let c=9;c>=1;c--){ if(!mine.counts[c]&&!best.counts[c]) continue; rows.push(`<tr><td>${NAMES[c]}</td><td>${pct(mine.counts[c]/mine.total)}</td><td>${pct(best.counts[c]/best.total)}</td></tr>`); }
+  rows.push(`<tr><td><b>Any win</b></td><td><b>${pct(winP(mine))}</b></td><td><b>${pct(winP(best))}</b></td></tr>`);
+  rows.push(`<tr><td><b>Avg return (5 coins)</b></td><td><b>${(mine.ev*5).toFixed(2)}</b></td><td><b>${(best.ev*5).toFixed(2)}</b></td></tr>`);
+  return `<div class="tbl-wrap"><table><thead><tr><th>Draw result</th><th>Your hold</th><th>Best hold</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+}
+function topTable(R,hand,myMask){
+  const top=R.slice(0,5); if(!top.some(r=>r.mask===myMask)){const m=R.find(r=>r.mask===myMask); top.push(m);}
+  return `<div class="tbl-wrap"><table><thead><tr><th>Rank · hold</th><th>EV</th></tr></thead><tbody>${top.map(r=>{const rank=R.indexOf(r)+1; const cls=r.mask===myMask?(rank===1||R[0].ev-r.ev<EPS?'best':'me'):rank===1?'best':''; const cs=cardsOf(hand,r.mask); return `<tr class="${cls}"><td>${rank}. ${cs.length?listCards(cs):'Draw five'} <span style="color:var(--muted);font-weight:400">${classify(cs).label}</span></td><td>${r.ev.toFixed(4)}</td></tr>`;}).join('')}</tbody></table></div>`;
+}
+function renderFeedback(){
+  const el=$('feedback');
+  if(S.phase==='idle'){
+    el.innerHTML=`<div class="intro"><h2>Play every hand perfectly</h2><p>Deal, tap the cards you want to hold, then Draw. Before any card is replaced, every one of the 32 possible holds is checked against the exact math for the current pay table. If yours isn't the best, you'll see what to hold instead and why.</p><p>EV is the average return per coin bet across every possible draw. 1.0 means you get your bet back.</p></div>`;
+    return;
+  }
+  if(S.phase==='dealt'){
+    const R=S.analysis?ranked():null;
+    let h=`<div class="fb-head"><span class="pill wait">Your move</span>${R?'':'<span class="empty-note"><span class="spin"></span> Calculating the best play…</span>'}</div><p class="empty-note" style="margin:10px 0 0">Choose your holds and press Draw. Tap Hint to see the best hold first (it's counted).</p>`;
+    if(S.hintShown&&R){const B=classify(cardsOf(S.hand,R[0].mask)); h+=`<div class="hold-line" style="margin-top:10px;border-top:1px solid var(--line)"><div class="hl-k">Hint</div><div class="hl-v">${R[0].mask?mini(S.hand,R[0].mask,false):''}<div class="lab">${B.label}</div><div class="ev">${reasonFor(B)}</div></div></div>`;}
+    el.innerHTML=h; return;
+  }
+  const R=ranked(); if(!R){el.innerHTML='<span class="spin"></span>';return;}
+  const hand=S.phase==='done'?S.dealtHand:S.hand;
+  const nowMask=S.phase==='done'?S.drawnMask:curMask();
+  const best=R[0], first=R.find(r=>r.mask===S.firstMask), now=R.find(r=>r.mask===nowMask);
+  const firstOk=best.ev-first.ev<EPS, nowOk=best.ev-now.ev<EPS;
+  const B=classify(cardsOf(hand,best.mask));
+  let h='';
+  if(firstOk){
+    h+=`<div class="fb-head"><span class="pill ok">Optimal</span><h2>${B.label}</h2></div>`;
+    h+=holdLine('You held',hand,now,classify(cardsOf(hand,nowMask)).label);
+    const second=R.find(r=>best.ev-r.ev>=EPS);
+    h+=`<ul class="why"><li>${reasonFor(B)}</li>${second?`<li>Next best: ${second.mask?listCards(cardsOf(hand,second.mask)):'draw five'} (${classify(cardsOf(hand,second.mask)).label.replace(/^./,ch=>ch.toLowerCase())}), EV ${second.ev.toFixed(4)}.</li>`:''}</ul>`;
+    h+=`<details><summary>See the top holds</summary>${topTable(R,hand,nowMask)}</details>`;
+  } else {
+    const cost=(best.ev-first.ev)*5;
+    const sev=cost<0.1?'Small error':cost<0.5?'Moderate error':'Big error';
+    const U=classify(cardsOf(hand,S.firstMask));
+    h+=`<div class="fb-head"><span class="pill ${nowOk?'ok':'no'}">${nowOk?(S.phase==='done'?'Corrected':'Fixed'):'Not optimal'}</span><span class="fb-cost">${sev} · −${cost.toFixed(2)} coins per hand</span></div>`;
+    h+=holdLine('Best hold',hand,best,B.label);
+    h+=holdLine('You held',hand,first,U.label);
+    const tips=tipsFor(hand,S.firstMask,best.mask,U,B,first,best);
+    const ml=mathLine(first,best);
+    h+=`<ul class="why">${tips.map(t=>`<li>${t}</li>`).join('')}${ml?`<li>${ml}</li>`:''}<li>${reasonFor(B)}</li></ul>`;
+    if(S.phase==='review'){
+      if(nowOk) h+=`<p style="margin:12px 0 0;font-weight:700;color:var(--good)">Your hold is now the best play. Press Draw.</p><div class="actions"><button class="btn primary" type="button" data-act="draw">Draw</button></div>`;
+      else{
+        const changed=nowMask!==S.firstMask;
+        if(changed) h+=`<p style="margin:12px 0 0;color:var(--muted)">Current hold: ${classify(cardsOf(hand,nowMask)).label.replace(/^./,ch=>ch.toLowerCase())} (EV ${now.ev.toFixed(4)}). Still not the best.</p>`;
+        h+=`<div class="actions"><button class="btn primary" type="button" data-act="best">Hold the best cards</button><button class="btn" type="button" data-act="draw">Draw with my hold</button></div>`;
+      }
+    } else if(S.drawnMask!==S.firstMask){
+      h+=`<p style="margin:12px 0 0;color:var(--muted)">You drew with ${nowOk?'the best hold':classify(cardsOf(hand,nowMask)).label.replace(/^./,ch=>ch.toLowerCase())}. Only your first choice counts toward accuracy.</p>`;
+    }
+    h+=`<details><summary>Compare the odds</summary>${outcomeTable(first,best)}${topTable(R,hand,S.firstMask)}</details>`;
+  }
+  el.innerHTML=h;
+}
+function renderLog(){
+  const L=P.log; $('logCount').textContent=L.length?`last ${Math.min(L.length,8)} of ${L.length}`:'';
+  if(!L.length){$('log').innerHTML='<li class="empty-note">No mistakes yet. Hands you misplay show up here with the right hold.</li>';return;}
+  $('log').innerHTML=L.slice(0,8).map(e=>`<li>${mini(e.cards,e.b,true)}<div class="lt">Best: <b>${e.bl}</b> · You: ${e.ul} · <span style="color:var(--bad);font-weight:700">−${e.cost.toFixed(2)}</span>${e.hint?' · after hint':''}${e.pt==='96'?' · 9/6':''}</div></li>`).join('');
+}
+function render(){
+  if(S.phase!=='done') S.dealtHand=S.hand.slice();
+  renderMachine(); renderStats(); renderFeedback(); renderLog();
+  $('ptSel').value=P.pt; $('pauseTgl').checked=!!P.pause;
+}
+
+/* ---------- events ---------- */
+$('cards').addEventListener('click',e=>{const b=e.target.closest('.card'); if(b) toggle(+b.dataset.i);});
+$('dealBtn').addEventListener('click',drawClick);
+$('hintBtn').addEventListener('click',hint);
+$('refillBtn').addEventListener('click',()=>{P.credits+=1000; save(); render();});
+$('feedback').addEventListener('click',e=>{const b=e.target.closest('[data-act]'); if(!b) return; if(b.dataset.act==='best') useBest(); else if(b.dataset.act==='draw') doDraw();});
+$('ptSel').addEventListener('change',e=>{P.pt=e.target.value; save(); render();});
+$('pauseTgl').addEventListener('change',e=>{P.pause=e.target.checked; save();});
+let resetArm=false;
+$('resetBtn').addEventListener('click',e=>{
+  if(!resetArm){resetArm=true; e.target.textContent='Tap again to confirm'; setTimeout(()=>{resetArm=false; e.target.textContent='Reset stats';},3000); return;}
+  resetArm=false; e.target.textContent='Reset stats';
+  Object.assign(P,{hands:0,correct:0,lost:0,hints:0,log:[]}); save(); render();
+});
+document.addEventListener('keydown',e=>{
+  const t=e.target; if(t&&(t.tagName==='SELECT'||t.tagName==='INPUT'||t.tagName==='TEXTAREA')) return;
+  if(e.key>='1'&&e.key<='5'){toggle(+e.key-1); return;}
+  if((e.key===' '||e.key==='Enter')){ if(t&&t.tagName==='BUTTON') return; e.preventDefault(); if(S.phase==='review') doDraw(); else drawClick(); return;}
+  if(e.key==='h'||e.key==='H') hint();
+});
+
+/* start with a dealt hand so the trainer is visible immediately */
+render();
+deal();
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,313 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Triangle Peg Game</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: one centered column — title, status line, wooden board, controls, scoring card */
+:root {
+  --bg: #f3efe9;
+  --fg: #2b2420;
+  --muted: #6f625a;
+  --panel: #fbf8f4;
+  --line: #ddd3c8;
+  --accent: #b5481f;
+  --btn: #2b2420;
+  --btn-fg: #fbf8f4;
+  --display: "Zilla Slab", Rockwell, "Roboto Slab", Georgia, serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1d1916; --fg: #efe7de; --muted: #a89a8e; --panel: #27211d; --line: #3d342e;
+    --accent: #e8794b; --btn: #efe7de; --btn-fg: #1d1916; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1d1916; --fg: #efe7de; --muted: #a89a8e; --panel: #27211d; --line: #3d342e;
+  --accent: #e8794b; --btn: #efe7de; --btn-fg: #1d1916; color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 560px; margin: 0 auto; padding-block: 24px 40px; display: flex; flex-direction: column; gap: 16px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(1.8rem, 6vw, 2.4rem); line-height: 1.1; margin: 0; text-wrap: balance; }
+.sub { margin: 4px 0 0; color: var(--muted); }
+.status { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+#msg { font-weight: 700; min-height: 1.5em; }
+#count { font-family: var(--display); font-weight: 600; font-size: 1.1rem; font-variant-numeric: tabular-nums; color: var(--muted); }
+#count b { color: var(--fg); font-size: 1.5rem; }
+svg { width: 100%; max-width: 100%; height: auto; display: block; touch-action: manipulation; }
+.hole { cursor: pointer; outline: none; }
+.hole:focus-visible .focus { stroke: var(--accent); stroke-width: 3; }
+.tee { transition: transform 260ms cubic-bezier(.3,.7,.3,1), opacity 220ms; pointer-events: none; }
+.tee.gone { opacity: 0; }
+.tee .lift { transition: transform 140ms; transform-box: fill-box; transform-origin: center; }
+.tee.sel .lift { transform: scale(1.18); }
+.target { stroke: #fff3d6; stroke-width: 3; stroke-dasharray: 5 5; fill: rgba(255,240,200,.18); animation: spin 2.4s linear infinite; transform-box: fill-box; transform-origin: center; }
+.hintring { stroke: #7fe0ff; stroke-width: 4; fill: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.controls { display: flex; gap: 10px; flex-wrap: wrap; }
+button {
+  font: 700 0.95rem var(--body); padding: 10px 18px; border-radius: 999px; cursor: pointer;
+  border: 1.5px solid var(--btn); background: transparent; color: var(--fg);
+}
+button.primary { background: var(--btn); color: var(--btn-fg); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.card h2 { font-family: var(--display); font-size: 1.05rem; margin: 0 0 8px; letter-spacing: .02em; }
+.score { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; font-variant-numeric: tabular-nums; }
+.score dt { font-weight: 700; }
+.score dd { margin: 0; color: var(--muted); }
+.score .on dt, .score .on dd { color: var(--accent); }
+.rules { margin: 0; color: var(--muted); font-size: .95rem; }
+@media (prefers-reduced-motion: reduce) {
+  .tee, .tee .lift { transition: none; }
+  .target { animation: none; }
+}
+</style>
+
+<main>
+  <a href="../" style="display:inline-block;margin:12px 0 0;font:700 14px system-ui,sans-serif;color:inherit;opacity:.7;text-decoration:none">&larr; All games</a>
+  <header>
+    <h1>Triangle Peg Game</h1>
+    <p class="sub">Fifteen holes, fourteen tees. Jump until you can't.</p>
+  </header>
+
+  <div class="status">
+    <div id="msg" aria-live="polite">Tap any tee to pull it and start.</div>
+    <div id="count"><b id="left">15</b> tees</div>
+  </div>
+
+  <svg id="board" role="group" aria-label="Peg board"></svg>
+
+  <div class="controls">
+    <button id="undo" disabled>Undo</button>
+    <button id="hint" disabled>Hint</button>
+    <button id="restart" class="primary">New game</button>
+  </div>
+
+  <section class="card">
+    <h2>How you did</h2>
+    <dl class="score" id="score">
+      <div style="display:contents" data-n="1"><dt>1 left</dt><dd>Genius</dd></div>
+      <div style="display:contents" data-n="2"><dt>2 left</dt><dd>Pretty sharp</dd></div>
+      <div style="display:contents" data-n="3"><dt>3 left</dt><dd>Just average</dd></div>
+      <div style="display:contents" data-n="4"><dt>4+ left</dt><dd>Keep practicing</dd></div>
+    </dl>
+  </section>
+
+  <p class="rules">Jump a tee over a neighbor into an empty hole, in any of the six straight directions. The tee you jump over comes off the board. Every starting hole can be solved down to one tee.</p>
+</main>
+
+<script>
+(() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const ROWS = 5, S = 64, H = S * Math.sqrt(3) / 2;
+  const COLORS = ["#d23a2c", "#f2c230", "#2f6fd6", "#f4f1ea", "#2f9b57"];
+
+  // Geometry
+  const cells = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c <= r; c++) cells.push({ r, c, x: (c - r / 2) * S, y: r * H });
+  const idx = (r, c) => r * (r + 1) / 2 + c;
+  const ok = (r, c) => r >= 0 && r < ROWS && c >= 0 && c <= r;
+  const DIRS = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[-1,-1]];
+  const MOVES = []; // {from, over, to}
+  cells.forEach(({ r, c }) => DIRS.forEach(([dr, dc]) => {
+    if (ok(r + 2*dr, c + 2*dc)) MOVES.push({ from: idx(r,c), over: idx(r+dr,c+dc), to: idx(r+2*dr,c+2*dc) });
+  }));
+
+  // Solver: fewest tees reachable from a mask
+  const memo = new Map();
+  const bits = m => { let n = 0; while (m) { n += m & 1; m >>>= 1; } return n; };
+  function best(mask) {
+    if (memo.has(mask)) return memo.get(mask);
+    let b = bits(mask);
+    for (const mv of MOVES) {
+      if ((mask >> mv.from & 1) && (mask >> mv.over & 1) && !(mask >> mv.to & 1)) {
+        b = Math.min(b, best(mask & ~(1 << mv.from) & ~(1 << mv.over) | (1 << mv.to)));
+        if (b === 1) break;
+      }
+    }
+    memo.set(mask, b);
+    return b;
+  }
+
+  // SVG setup
+  const svg = document.getElementById("board");
+  const pad = 46;
+  const tri = [[0, -pad * 1.15], [-(2*S) - pad, 4*H + pad * .6], [(2*S) + pad, 4*H + pad * .6]];
+  const xs = tri.map(p => p[0]), ys = tri.map(p => p[1]);
+  const m = 18;
+  svg.setAttribute("viewBox", `${Math.min(...xs) - m} ${Math.min(...ys) - m} ${Math.max(...xs) - Math.min(...xs) + 2*m} ${Math.max(...ys) - Math.min(...ys) + 2*m}`);
+  const el = (tag, attrs = {}, parent) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+
+  const defs = el("defs", {}, svg);
+  const wood = el("linearGradient", { id: "wood", x1: "0", y1: "0", x2: "1", y2: "1" }, defs);
+  [["0","#c88b52"],[".45","#b47640"],[".55","#bd8049"],["1","#9c622f"]].forEach(([o,c]) => el("stop", { offset: o, "stop-color": c }, wood));
+  const grainP = el("pattern", { id: "grain", width: "220", height: "14", patternUnits: "userSpaceOnUse", patternTransform: "rotate(-8)" }, defs);
+  el("path", { d: "M0 7 C55 3 110 11 165 6 S220 8 220 7", stroke: "rgba(80,40,15,.18)", "stroke-width": "1.4", fill: "none" }, grainP);
+  COLORS.forEach((c, i) => {
+    const g = el("radialGradient", { id: "tee" + i, cx: ".38", cy: ".35", r: ".75" }, defs);
+    el("stop", { offset: "0", "stop-color": "#fff", "stop-opacity": ".75" }, g);
+    el("stop", { offset: ".35", "stop-color": c }, g);
+    el("stop", { offset: "1", "stop-color": c }, g);
+  });
+  const shadow = el("filter", { id: "sh", x: "-50%", y: "-50%", width: "200%", height: "200%" }, defs);
+  el("feDropShadow", { dx: "1.5", dy: "3", stdDeviation: "2", "flood-color": "#2a1405", "flood-opacity": ".45" }, shadow);
+
+  const pts = tri.map(p => p.join(",")).join(" ");
+  el("polygon", { points: pts, fill: "#6e4220", stroke: "#6e4220", "stroke-width": "34", "stroke-linejoin": "round", transform: "translate(0,6)" }, svg);
+  el("polygon", { points: pts, fill: "url(#wood)", stroke: "url(#wood)", "stroke-width": "30", "stroke-linejoin": "round" }, svg);
+  el("polygon", { points: pts, fill: "url(#grain)", stroke: "none" }, svg);
+
+  const holeLayer = el("g", {}, svg);
+  const fxLayer = el("g", { "pointer-events": "none" }, svg);
+  const teeLayer = el("g", {}, svg);
+
+  const holeEls = cells.map((cell, i) => {
+    const g = el("g", { class: "hole", tabindex: "0", role: "button" }, holeLayer);
+    el("circle", { cx: cell.x, cy: cell.y, r: 26, fill: "transparent" }, g);
+    el("circle", { cx: cell.x, cy: cell.y + 1, r: 11, fill: "#3a2110" }, g);
+    el("circle", { cx: cell.x, cy: cell.y, r: 11, fill: "#24130a", class: "focus", stroke: "rgba(255,220,180,.25)", "stroke-width": "1.5" }, g);
+    g.addEventListener("click", () => tap(i));
+    g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(i); } });
+    return g;
+  });
+
+  // State
+  let tees, occ, phase, sel, history, hintMove;
+  const teeEls = {};
+
+  function newGame() {
+    teeLayer.textContent = "";
+    tees = cells.map((_, i) => ({ id: i, color: i % COLORS.length, pos: i, alive: true }));
+    occ = cells.map((_, i) => i);
+    tees.forEach(t => {
+      const g = el("g", { class: "tee" }, teeLayer);
+      const lift = el("g", { class: "lift", filter: "url(#sh)" }, g);
+      el("circle", { cx: 0, cy: 0, r: 17, fill: `url(#tee${t.color})`, stroke: "rgba(0,0,0,.25)", "stroke-width": "1" }, lift);
+      el("circle", { cx: 0, cy: 0, r: 6.5, fill: "rgba(0,0,0,.12)" }, lift);
+      teeEls[t.id] = g;
+      place(t);
+    });
+    phase = "start"; sel = null; history = []; hintMove = null;
+    render();
+  }
+
+  function place(t) {
+    const c = cells[t.pos];
+    teeEls[t.id].style.transform = `translate(${c.x}px, ${c.y}px)`;
+  }
+
+  const mask = () => occ.reduce((m, o, i) => o !== null ? m | (1 << i) : m, 0);
+  const legal = from => MOVES.filter(mv => mv.from === from && occ[mv.over] !== null && occ[mv.to] === null);
+  const allLegal = () => MOVES.filter(mv => occ[mv.from] !== null && occ[mv.over] !== null && occ[mv.to] === null);
+
+  function snapshot() { return { occ: occ.slice(), tees: tees.map(t => ({ ...t })), phase }; }
+
+  function tap(i) {
+    hintMove = null;
+    if (phase === "start") {
+      history.push(snapshot());
+      kill(occ[i]); occ[i] = null; phase = "play";
+      return render();
+    }
+    if (phase !== "play") return;
+    if (sel !== null && occ[i] === null) {
+      const mv = legal(sel).find(m => m.to === i);
+      if (mv) return jump(mv);
+    }
+    if (occ[i] !== null) {
+      sel = (sel === i) ? null : (legal(i).length ? i : null);
+      if (sel === null && occ[i] !== null && !legal(i).length) flash("That tee has no jump.");
+      return render(true);
+    }
+    sel = null; render();
+  }
+
+  function kill(id) { const t = tees[id]; t.alive = false; teeEls[id].classList.add("gone"); }
+
+  function jump(mv) {
+    history.push(snapshot());
+    const id = occ[mv.from];
+    kill(occ[mv.over]);
+    occ[mv.over] = null; occ[mv.from] = null; occ[mv.to] = id;
+    tees[id].pos = mv.to; place(tees[id]);
+    sel = null;
+    if (!allLegal().length) phase = "over";
+    render();
+  }
+
+  function undo() {
+    const s = history.pop(); if (!s) return;
+    occ = s.occ; phase = s.phase; sel = null; hintMove = null;
+    s.tees.forEach(t => { tees[t.id] = t; teeEls[t.id].classList.toggle("gone", !t.alive); place(t); });
+    render();
+  }
+
+  function hint() {
+    if (phase !== "play") return;
+    let pick = null, score = 99;
+    for (const mv of allLegal()) {
+      const m = mask() & ~(1 << mv.from) & ~(1 << mv.over) | (1 << mv.to);
+      const b = best(m);
+      if (b < score) { score = b; pick = mv; }
+    }
+    hintMove = pick; sel = pick.from;
+    render(true);
+    setMsg(score === 1 ? "This jump still leads to one tee." : `Best you can do from here is ${score} tees.`);
+  }
+
+  let flashTimer;
+  function flash(t) { setMsg(t); clearTimeout(flashTimer); flashTimer = setTimeout(() => render(), 1400); }
+  const msgEl = document.getElementById("msg");
+  function setMsg(t) { msgEl.textContent = t; }
+
+  const VERDICT = { 1: "Genius", 2: "Pretty sharp", 3: "Just average" };
+
+  function render(keepMsg) {
+    fxLayer.textContent = "";
+    const left = occ.filter(o => o !== null).length;
+    document.getElementById("left").textContent = left;
+    Object.values(teeEls).forEach(g => g.classList.remove("sel"));
+    if (sel !== null) {
+      teeEls[occ[sel]].classList.add("sel");
+      legal(sel).forEach(mv => {
+        const c = cells[mv.to];
+        el("circle", { cx: c.x, cy: c.y, r: 19, class: hintMove && hintMove.to === mv.to ? "hintring" : "target" }, fxLayer);
+      });
+    }
+    holeEls.forEach((g, i) => g.setAttribute("aria-label",
+      `Row ${cells[i].r + 1}, hole ${cells[i].c + 1}: ${occ[i] !== null ? "tee" : "empty"}${sel === i ? ", selected" : ""}`));
+
+    document.querySelectorAll("#score > div").forEach(d => d.classList.remove("on"));
+    if (!keepMsg) {
+      if (phase === "start") setMsg("Tap any tee to pull it and start.");
+      else if (phase === "play") setMsg(sel === null ? "Tap a tee, then tap where it lands." : "Tap a highlighted hole to jump.");
+      else {
+        const n = Math.min(left, 4);
+        document.querySelector(`#score > div[data-n="${n}"]`).classList.add("on");
+        setMsg(`No jumps left. ${left} ${left === 1 ? "tee" : "tees"}: ${VERDICT[left] || "Keep practicing"}.`);
+      }
+    }
+    document.getElementById("undo").disabled = !history.length;
+    document.getElementById("hint").disabled = phase !== "play";
+  }
+
+  document.getElementById("undo").addEventListener("click", undo);
+  document.getElementById("hint").addEventListener("click", hint);
+  document.getElementById("restart").addEventListener("click", newGame);
+  newGame();
+})();
+</script>
+
+</body></html>
