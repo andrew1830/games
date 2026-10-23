@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cribbage</title>
+<style>
+:root{
+  --bg:#dfe5dc;--surface:#f6f7f2;--ink:#1d2621;--muted:#5a675f;--line:#c4cdc2;
+  --pine:#dcbc86;--pine-edge:#b38b50;--pine-ink:#5a3d1a;--hole:#5e3f1c;
+  --stripe-p:#e8a196;--stripe-c:#9dbbe6;
+  --peg-p:#b8281b;--peg-c:#1f56a8;--peg-ring:#fff8ea;
+  --p:#c0392b;--c:#2b5fa8;--tag-ink:#fff;
+  --card:#fffdf8;--card-ink:#1d2621;--card-red:#b3261e;--card-line:#b9c2b7;
+  --btn:#1d2621;--btn-ink:#f6f7f2;--focus:#2b5fa8;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#141b17;--surface:#1f2924;--ink:#e4eae3;--muted:#9aa89f;--line:#34423a;
+    --pine:#bf9c62;--pine-edge:#7d5f33;--pine-ink:#3b270f;--hole:#4a3015;
+    --stripe-p:#dc8f83;--stripe-c:#8aa9d8;
+    --p:#ff6b5b;--c:#6fa3ff;--tag-ink:#141b17;
+    --card:#ecebe4;--card-ink:#1d2621;--card-red:#b3261e;--card-line:#55635a;
+    --btn:#e4eae3;--btn-ink:#141b17;--focus:#8fb6ff;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:780px;margin:0 auto;padding:16px 14px 40px}
+h1{font:700 1.9rem/1.1 "Iowan Old Style",Palatino,"Palatino Linotype",Georgia,serif;margin:0 0 12px;letter-spacing:.01em}
+h2{font:600 1rem/1.2 "Iowan Old Style",Palatino,Georgia,serif;margin:0 0 6px;color:var(--muted)}
+
+/* Score chips */
+.scores{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.chip{display:flex;align-items:center;gap:10px;background:var(--surface);border:2px solid var(--line);border-radius:10px;padding:8px 12px;transition:border-color .2s}
+.chip .dot{width:14px;height:14px;border-radius:50%;flex:none;box-shadow:0 0 0 2px var(--peg-ring)}
+.chip.p .dot{background:var(--peg-p)}.chip.c .dot{background:var(--peg-c)}
+.chip .nm{font-weight:600;display:block;line-height:1.2}
+.chip .sub{font-size:.8rem;color:var(--muted);display:block;min-height:1.15em}
+.chip b{margin-left:auto;font:700 1.7rem/1 "Iowan Old Style",Palatino,Georgia,serif}
+.chip.p.on{border-color:var(--p)}.chip.c.on{border-color:var(--c)}
+
+/* Board */
+.board{background:var(--pine);border-radius:10px;border-bottom:6px solid var(--pine-edge);padding:2px}
+.board svg{display:block;width:100%;height:auto}
+.stripe{fill:none;stroke-width:16}
+.stripe.p{stroke:var(--stripe-p)}.stripe.c{stroke:var(--stripe-c)}
+.hole{fill:var(--hole)}
+.tick{stroke:var(--pine-ink);stroke-width:1;opacity:.45}
+.tick.start{stroke-width:2;opacity:.7}
+.blab{fill:var(--pine-ink);font:600 9px system-ui,sans-serif;text-anchor:middle}
+.blab.big{font:700 10px "Iowan Old Style",Palatino,Georgia,serif;letter-spacing:.04em}
+.fin{fill:var(--hole);stroke:var(--pine-ink);stroke-width:1.5}
+.peg{stroke:var(--peg-ring);stroke-width:1.8;transition:transform .45s ease}
+.peg.p{fill:var(--peg-p)}.peg.c{fill:var(--peg-c)}
+.peg.back{opacity:.6}
+
+/* Table */
+.table{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px;display:grid;gap:16px}
+.seat{border:2px solid transparent;border-radius:10px;padding:8px;margin:-10px;transition:border-color .2s}
+.seat.p.on{border-color:var(--p)}.seat.c.on{border-color:var(--c)}
+.seat h2{display:flex;align-items:center;gap:8px;min-height:24px}
+.tag{display:none;align-items:center;gap:6px;font:600 .78rem/1 system-ui,sans-serif;color:var(--tag-ink);border-radius:20px;padding:5px 10px}
+.seat.on .tag{display:inline-flex}
+.seat.p .tag{background:var(--p)}.seat.c .tag{background:var(--c)}
+.tag::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--tag-ink);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.2}}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;min-height:84px}
+.mid{display:grid;grid-template-columns:auto auto 1fr;gap:18px;align-items:start}
+.count{font:700 2.6rem/1 "Iowan Old Style",Palatino,Georgia,serif}
+.card{width:56px;height:80px;border-radius:7px;background:var(--card);color:var(--card-ink);border:1px solid var(--card-line);
+  display:inline-flex;flex-direction:column;justify-content:space-between;padding:5px 6px;font:700 17px/1 Georgia,serif;flex:none}
+.card .s{font-size:26px;align-self:center;margin-bottom:10px}
+.card.red{color:var(--card-red)}
+.card.back{background:repeating-linear-gradient(45deg,var(--c) 0 5px,var(--surface) 5px 8px);border-color:var(--c)}
+.card.by-p{box-shadow:inset 0 -5px 0 var(--peg-p)}
+.card.by-c{box-shadow:inset 0 -5px 0 var(--peg-c)}
+button.card{cursor:pointer;transition:transform .12s}
+button.card:disabled{cursor:default;opacity:.4}
+button.card.sel{transform:translateY(-12px);box-shadow:0 0 0 3px var(--p)}
+button.card.ok{box-shadow:0 0 0 2px var(--c)}
+.lbl{font-size:.8rem;color:var(--muted);text-align:center;margin-top:3px}
+.cell{display:flex;flex-direction:column;align-items:center}
+.bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;min-height:42px}
+#msg{flex:1;min-width:200px;font-weight:600}
+#action{background:var(--btn);color:var(--btn-ink);border:0;border-radius:8px;padding:10px 18px;font:600 1rem system-ui,sans-serif;cursor:pointer}
+#action:disabled{opacity:.35;cursor:default}
+#action[hidden]{display:none}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+#panel{border-top:1px solid var(--line);padding-top:12px}
+#panel[hidden]{display:none}
+#panel ul{list-style:none;padding:0;margin:8px 0 0;max-width:340px}
+#panel li{display:flex;justify-content:space-between;border-bottom:1px dotted var(--line);padding:3px 0}
+#panel li.tot{font-weight:700;border:0}
+#log{margin-top:14px;color:var(--muted);font-size:.92rem;max-height:9.5em;overflow:auto}
+#log div:first-child{color:var(--ink)}
+@media (max-width:520px){
+  .card{width:46px;height:68px;font-size:15px}.card .s{font-size:21px}
+  .mid{grid-template-columns:auto 1fr}
+  .mid .pile{grid-column:1/-1}
+  .chip b{font-size:1.45rem}
+  .board{margin:0 -10px}
+}
+@media (prefers-reduced-motion:reduce){
+  button.card,.peg,.seat,.chip{transition:none}
+  .tag::before{animation:none}
+}
+</style>
+</head>
+<body>
+<main>
+  <a href="../" style="display:inline-block;margin:0 0 8px;font:700 14px system-ui,sans-serif;color:inherit;opacity:.7;text-decoration:none">&larr; All games</a>
+  <h1>Cribbage</h1>
+
+  <div class="scores">
+    <div class="chip p" id="chip-p"><span class="dot"></span><span><span class="nm">You</span><span class="sub" id="sub-p"></span></span><b id="sc-p">0</b></div>
+    <div class="chip c" id="chip-c"><span class="dot"></span><span><span class="nm">Computer</span><span class="sub" id="sub-c"></span></span><b id="sc-c">0</b></div>
+  </div>
+
+  <div class="board"><svg id="board" viewBox="0 0 712 172" role="img" aria-label="Cribbage board"></svg></div>
+
+  <section class="table">
+    <div class="seat c" id="seat-c">
+      <h2>Computer <span class="tag" id="tag-c"></span></h2>
+      <div class="row" id="cpuHand"></div>
+    </div>
+
+    <div class="mid">
+      <div class="cell"><div id="starter"></div><div class="lbl">Starter</div></div>
+      <div class="cell"><div id="crib"></div><div class="lbl" id="cribLbl">Crib</div></div>
+      <div class="pile">
+        <h2>Count <span class="count" id="count">–</span></h2>
+        <div class="row" id="pile" style="min-height:0"></div>
+      </div>
+    </div>
+
+    <div class="bar">
+      <div id="msg"></div>
+      <button id="action"></button>
+    </div>
+
+    <div class="seat p" id="seat-p">
+      <h2>Your hand <span class="tag" id="tag-p"></span></h2>
+      <div class="row" id="hand"></div>
+    </div>
+
+    <div id="panel"></div>
+  </section>
+
+  <div id="log" aria-live="polite"></div>
+</main>
+
+<script>
+const SU=['♠','♥','♦','♣'], RK=['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const val=c=>Math.min(c.r,10), isRed=c=>c.s===1||c.s===2, cs=c=>RK[c.r]+SU[c.s];
+const other=w=>w==='p'?'c':'p', nm=w=>w==='p'?'You':'Computer', poss=w=>w==='p'?'Your':"Computer's";
+const sortH=h=>h.sort((a,b)=>a.r-b.r||a.s-b.s);
+const $=id=>document.getElementById(id);
+function fullDeck(){const d=[];for(let s=0;s<4;s++)for(let r=1;r<=13;r++)d.push({r,s});return d}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+/* ---------- Scoring ---------- */
+function scoreHand(hand,starter,isCrib){
+  const cards=[...hand,starter], items=[];
+  let f=0;
+  for(let m=1;m<32;m++){let s=0;for(let i=0;i<5;i++)if(m>>i&1)s+=val(cards[i]);if(s===15)f++}
+  if(f)items.push([f===1?'Fifteen':`${f} fifteens`,f*2]);
+  let p=0;
+  for(let i=0;i<5;i++)for(let j=i+1;j<5;j++)if(cards[i].r===cards[j].r)p++;
+  if(p)items.push([p===1?'Pair':`${p} pairs`,p*2]);
+  const cnt=Array(15).fill(0);cards.forEach(c=>cnt[c.r]++);
+  let r=1;
+  while(r<=13){
+    if(!cnt[r]){r++;continue}
+    const start=r;let mult=1;
+    while(r<=13&&cnt[r]){mult*=cnt[r];r++}
+    const len=r-start;
+    if(len>=3)items.push([mult>1?`${mult} runs of ${len}`:`Run of ${len}`,len*mult]);
+  }
+  if(hand.every(c=>c.s===hand[0].s)){
+    if(starter.s===hand[0].s)items.push(['Flush of 5',5]);
+    else if(!isCrib)items.push(['Flush of 4',4]);
+  }
+  if(hand.some(c=>c.r===11&&c.s===starter.s))items.push(['Nobs (jack of starter suit)',1]);
+  return{items,total:items.reduce((a,x)=>a+x[1],0)};
+}
+function pegPoints(seq,count){
+  const items=[];
+  if(count===15)items.push(['fifteen',2]);
+  if(count===31)items.push(['thirty-one',2]);
+  const last=seq[seq.length-1].r;let k=1;
+  while(k<seq.length&&seq[seq.length-1-k].r===last)k++;
+  if(k===2)items.push(['pair',2]);else if(k===3)items.push(['pair royal',6]);else if(k===4)items.push(['double pair royal',12]);
+  for(let len=seq.length;len>=3;len--){
+    const t=seq.slice(-len).map(c=>c.r).sort((a,b)=>a-b);
+    let ok=true;for(let i=1;i<len;i++)if(t[i]!==t[i-1]+1){ok=false;break}
+    if(ok){items.push([`run of ${len}`,len]);break}
+  }
+  return items;
+}
+
+/* ---------- Computer strategy ---------- */
+function cribGuess(d){
+  let v=0;
+  if(val(d[0])+val(d[1])===15)v+=2;
+  if(d[0].r===d[1].r)v+=2;
+  if(Math.abs(d[0].r-d[1].r)<=2&&d[0].r!==d[1].r)v+=1;
+  d.forEach(c=>{if(c.r===5)v+=1.5});
+  return v;
+}
+function cpuDiscard(hand,isDealer){
+  const rest=fullDeck().filter(c=>!hand.some(h=>h.r===c.r&&h.s===c.s));
+  let best=[0,1],bv=-1e9;
+  for(let i=0;i<6;i++)for(let j=i+1;j<6;j++){
+    const keep=hand.filter((_,k)=>k!==i&&k!==j);
+    let sum=0;for(const s of rest)sum+=scoreHand(keep,s,false).total;
+    const cg=cribGuess([hand[i],hand[j]]);
+    const v=sum/rest.length+(isDealer?cg:-cg);
+    if(v>bv){bv=v;best=[i,j]}
+  }
+  return best;
+}
+function cpuChoose(){
+  const P=S.peg;let best=null,bv=-1e9;
+  for(const c of P.c){
+    const nc=P.count+val(c);if(nc>31)continue;
+    let v=pegPoints([...P.seq,c],nc).reduce((a,x)=>a+x[1],0)*10;
+    if(nc===5||nc===21)v-=4;
+    if(P.seq.length===0){if(c.r===5)v-=5;if(val(c)<5)v+=2}
+    v+=val(c)*0.1;
+    if(v>bv){bv=v;best=c}
+  }
+  return best;
+}
+
+/* ---------- Game flow ---------- */
+let S;
+function log(t){S.log.unshift(t);if(S.log.length>60)S.log.pop()}
+function msg(t){S.msg=t}
+function setAction(label,fn){S.action=label?{label,fn}:null}
+function later(fn,ms){S.timer=setTimeout(()=>{S.timer=null;fn()},ms)}
+
+function award(w,n,why){
+  if(!n)return false;
+  S.back[w]=S.scores[w];
+  S.scores[w]=Math.min(121,S.scores[w]+n);
+  log(`${nm(w)} ${w==='p'?'peg':'pegs'} ${n}: ${why}`);
+  if(S.scores[w]>=121){gameOver(w);return true}
+  return false;
+}
+function gameOver(w){
+  clearTimeout(S.timer);S.timer=null;
+  S.phase='over';
+  const l=S.scores[other(w)];
+  const sk=l<61?' Double skunk.':l<91?' Skunk.':'';
+  msg(`${w==='p'?'You win':'Computer wins'}, 121 to ${l}.${sk}`);
+  log(`Game over. ${nm(w)} reached 121.`);
+  setAction('New game',newGame);
+  render();
+}
+
+function newGame(){
+  if(S&&S.timer)clearTimeout(S.timer);
+  S={scores:{p:0,c:0},back:{p:0,c:0},log:[],phase:'start',panel:null,hands:null,crib:[],starter:null,peg:null,sel:[],timer:null,dealer:null};
+  msg('Cut the deck to decide the first dealer. Low card deals; aces are low.');
+  setAction('Cut for deal',cutForDeal);
+  render();
+}
+function cutForDeal(){
+  const d=shuffle(fullDeck());let a,b;
+  do{a=d.pop();b=d.pop();if(a.r===b.r)log(`Tie on ${RK[a.r]}s, cutting again.`)}while(a.r===b.r);
+  S.dealer=a.r<b.r?'p':'c';
+  S.panel={title:'Cut for deal',cards:[[a,'You'],[b,'Computer']],items:[]};
+  log(`You cut ${cs(a)}, Computer cut ${cs(b)}. ${nm(S.dealer)} ${S.dealer==='p'?'deal':'deals'} first.`);
+  msg(`${nm(S.dealer)} ${S.dealer==='p'?'deal':'deals'} first.`);
+  setAction('Deal',deal);
+  render();
+}
+function deal(){
+  const d=shuffle(fullDeck());
+  S.deck=d;
+  S.hands={p:sortH(d.splice(0,6)),c:sortH(d.splice(0,6))};
+  S.crib=[];S.starter=null;S.peg=null;S.panel=null;S.sel=[];
+  const [i,j]=cpuDiscard(S.hands.c,S.dealer==='c');
+  S.crib.push(S.hands.c[i],S.hands.c[j]);
+  S.hands.c=S.hands.c.filter((_,k)=>k!==i&&k!==j);
+  S.phase='discard';
+  log(`${nm(S.dealer)} ${S.dealer==='p'?'deal':'deals'}. New hand.`);
+  msg(`Pick 2 cards for ${S.dealer==='p'?'your':"the computer's"} crib.`);
+  setAction('Send to crib',playerDiscard);
+  render();
+}
+function playerDiscard(){
+  if(S.sel.length!==2)return;
+  S.sel.forEach(i=>S.crib.push(S.hands.p[i]));
+  S.hands.p=S.hands.p.filter((_,k)=>!S.sel.includes(k));
+  S.sel=[];S.phase='cut';
+  msg(`${S.dealer==='p'?'Computer':'You'} cut${S.dealer==='p'?'s':''} the deck…`);
+  setAction(null);
+  render();
+  later(cutStarter,650);
+}
+function cutStarter(){
+  S.starter=S.deck.splice(Math.floor(Math.random()*S.deck.length),1)[0];
+  log(`Starter is ${cs(S.starter)}.`);
+  if(S.starter.r===11&&award(S.dealer,2,'his heels'))return;
+  startPegging();
+}
+
+/* Pegging */
+const canPlay=w=>S.peg[w].some(c=>val(c)+S.peg.count<=31);
+function resetCount(){S.peg.count=0;S.peg.seq=[];S.peg.played=[];S.peg.go={p:false,c:false}}
+function startPegging(){
+  S.peg={p:[...S.hands.p],c:[...S.hands.c],count:0,seq:[],played:[],last:null,go:{p:false,c:false},done:false};
+  S.phase='peg';S.turn=other(S.dealer);
+  setAction(null);
+  pegLoop();
+}
+function pegLoop(){
+  if(S.phase!=='peg')return;
+  const P=S.peg;
+  if(!P.p.length&&!P.c.length){
+    if(P.count>0&&award(P.last,1,'last card'))return;
+    endPegging();return;
+  }
+  const w=S.turn;
+  if(canPlay(w)){
+    if(w==='p'){msg(`Your play. Count is ${P.count}.`);render();return}
+    msg('Computer is playing…');render();
+    if(!S.timer)later(()=>{if(S.phase==='peg')playCard('c',cpuChoose())},750);
+    return;
+  }
+  const o=other(w);
+  if(canPlay(o)){
+    if(!P.go[w]&&P[w].length)log(`${nm(w)}: Go.`);
+    P.go[w]=true;S.turn=o;pegLoop();return;
+  }
+  if(P.count>0&&award(P.last,1,'go'))return;
+  resetCount();
+  S.turn=other(P.last);
+  pegLoop();
+}
+function playCard(w,card){
+  const P=S.peg;
+  P[w]=P[w].filter(c=>c!==card);
+  P.count+=val(card);P.seq.push(card);P.played.push({c:card,w});P.last=w;
+  log(`${nm(w)} ${w==='p'?'play':'plays'} ${cs(card)} (${P.count}).`);
+  const pts=pegPoints(P.seq,P.count);
+  if(pts.length&&award(w,pts.reduce((a,x)=>a+x[1],0),pts.map(x=>x[0]).join(' + ')))return;
+  if(P.count===31)resetCount();
+  S.turn=other(w);
+  render();pegLoop();
+}
+function endPegging(){
+  S.peg.done=true;S.peg.seq=[];S.peg.played=[];S.peg.count=0;
+  S.phase='count';S.countIdx=0;
+  showCount();
+}
+
+/* Counting: non-dealer hand, dealer hand, dealer crib */
+function showCount(){
+  const nd=other(S.dealer),d=S.dealer;
+  const steps=[[nd,S.hands[nd],false],[d,S.hands[d],false],[d,S.crib,true]];
+  const [w,h,isCrib]=steps[S.countIdx];
+  S.countWho=w;
+  const res=scoreHand(h,S.starter,isCrib);
+  const what=isCrib?'crib':'hand';
+  S.panel={title:`${poss(w)} ${what}: ${res.total}`,cards:[...sortH([...h]).map(c=>[c,'']),[S.starter,'Starter']],items:res.items,total:res.total};
+  msg(`${poss(w)} ${what} scores ${res.total}.`);
+  if(res.total===0)log(`${poss(w)} ${what}: nineteen (zero).`);
+  else if(award(w,res.total,what))return;
+  S.countIdx++;
+  if(S.countIdx<3)setAction('Next count',showCount);
+  else setAction('Next deal',()=>{S.dealer=other(S.dealer);deal()});
+  render();
+}
+
+/* ---------- Board (traditional continuous track) ---------- */
+const NS='http://www.w3.org/2000/svg';
+const G={s:13,g:7,off:8,XL:52,YT:30,YM:84,YB:138,r:27,R:54};
+const pos=i=>i*G.s+Math.floor(i/5)*G.g;
+G.X0=G.XL+G.s;
+G.XR=G.X0+pos(39)+G.s;
+G.FX=G.X0+pos(29)+40;
+G.YC=(G.YT+G.YM)/2;
+const OFF={p:G.off,c:-G.off}; // you ride the outside of the loop, computer the inside
+
+function holeXY(w,n){
+  const o=OFF[w];
+  if(n>=121)return[G.FX,G.YM];
+  if(n<=40)return[G.X0+pos(n-1),G.YB+o];                       // bottom, left to right
+  if(n<=45){const t=Math.PI/2-Math.PI*(n-41+.5)/5;              // big right turn
+    return[G.XR+(G.R+o)*Math.cos(t),G.YM+(G.R+o)*Math.sin(t)]}
+  if(n<=85)return[G.X0+pos(39-(n-46)),G.YT-o];                 // top, right to left
+  if(n<=90){const t=-Math.PI/2-Math.PI*(n-86+.5)/5;             // small left turn
+    return[G.XL+(G.r+o)*Math.cos(t),G.YC+(G.r+o)*Math.sin(t)]}
+  return[G.X0+pos(n-91),G.YM+o];                                // centre, left to right
+}
+const startXY=(w,k)=>[G.XL-26+k*12,G.YB+OFF[w]];
+
+function svgEl(tag,attrs,parent){
+  const e=document.createElementNS(NS,tag);
+  for(const k in attrs)e.setAttribute(k,attrs[k]);
+  if(parent)parent.append(e);return e;
+}
+const pegs={p:{},c:{}};
+function buildBoard(){
+  const b=$('board');
+  for(const w of ['p','c']){
+    const o=OFF[w];
+    svgEl('path',{class:'stripe '+w,d:
+      `M${G.XL-34} ${G.YB+o} H${G.XR} A${G.R+o} ${G.R+o} 0 0 0 ${G.XR} ${G.YT-o} `+
+      `H${G.XL} A${G.r+o} ${G.r+o} 0 0 0 ${G.XL} ${G.YM+o} H${G.FX-14}`},b);
+  }
+  // Group dividers on the straights
+  const tick=(x,y,cls='tick')=>svgEl('line',{class:cls,x1:x,x2:x,y1:y-16,y2:y+16},b);
+  for(let j=0;j<=8;j++){
+    const x=j===0?G.X0-G.s/2:G.X0+pos(5*j-1)+(j===8?G.s/2:(G.s+G.g)/2);
+    tick(x,G.YB,j===0?'tick start':'tick');tick(x,G.YT);
+    if(j<=6)tick(j===6?G.X0+pos(29)+G.s/2:x,G.YM);
+  }
+  // Holes
+  for(const w of ['p','c']){
+    for(let n=1;n<=120;n++){const[x,y]=holeXY(w,n);svgEl('circle',{class:'hole',cx:x,cy:y,r:2.6},b)}
+    for(let k=0;k<2;k++){const[x,y]=startXY(w,k);svgEl('circle',{class:'hole',cx:x,cy:y,r:2.6},b)}
+  }
+  svgEl('circle',{class:'fin',cx:G.FX,cy:G.YM,r:5},b);
+  // Labels
+  const lab=(t,x,y,cls='blab')=>{const e=svgEl('text',{class:cls,x,y},b);e.textContent=t};
+  for(const n of [10,20,30,40])lab(n,holeXY('p',n)[0],G.YB+27);
+  for(const n of [50,60,70,80])lab(n,holeXY('p',n)[0],G.YT-20);
+  for(const n of [100,110,120])lab(n,holeXY('p',n)[0],G.YM+27);
+  lab('Start',G.XL-20,G.YB+27,'blab big');
+  lab('Finish',G.FX,G.YM-12,'blab big');
+  // Pegs: two per player, back peg drawn first
+  for(const w of ['c','p'])for(const k of ['back','front'])
+    pegs[w][k]=svgEl('circle',{class:`peg ${w} ${k}`,cx:0,cy:0,r:5.5},b);
+}
+const narrow=matchMedia('(max-width:520px)');
+function placePegs(){
+  const pr=narrow.matches?8:6, hr=narrow.matches?3.2:2.6;
+  document.querySelectorAll('#board .hole').forEach(h=>h.setAttribute('r',hr));
+  for(const w of ['p','c']){
+    pegs[w].front.setAttribute('r',pr);pegs[w].back.setAttribute('r',pr);
+    const f=S.scores[w],bk=S.back[w];
+    const fp=f>0?holeXY(w,f):startXY(w,1);
+    const bp=bk>0?holeXY(w,bk):startXY(w,0);
+    pegs[w].front.style.transform=`translate(${fp[0]}px,${fp[1]}px)`;
+    pegs[w].back.style.transform=`translate(${bp[0]}px,${bp[1]}px)`;
+  }
+  $('board').setAttribute('aria-label',`Cribbage board. You ${S.scores.p}, Computer ${S.scores.c}.`);
+}
+
+/* ---------- Rendering ---------- */
+function cardEl(c,{btn=false,cls=''}={}){
+  const el=document.createElement(btn?'button':'div');
+  el.className='card'+(isRed(c)?' red':'')+(cls?' '+cls:'');
+  el.innerHTML=`<span>${RK[c.r]}</span><span class="s">${SU[c.s]}</span>`;
+  el.setAttribute('aria-label',`${RK[c.r]} of ${['spades','hearts','diamonds','clubs'][c.s]}`);
+  if(!btn)el.setAttribute('role','img');
+  return el;
+}
+function backEl(){const el=document.createElement('div');el.className='card back';el.setAttribute('aria-hidden','true');return el}
+function blankEl(){const el=document.createElement('div');el.className='card';el.style.visibility='hidden';return el}
+function wrapLbl(el,t){const w=document.createElement('div');w.className='cell';w.append(el);if(t){const l=document.createElement('div');l.className='lbl';l.textContent=t;w.append(l)}return w}
+
+function turnInfo(){
+  if(S.phase==='discard')return['p','Your turn'];
+  if(S.phase==='peg')return S.turn==='p'?['p','Your turn']:['c','Thinking'];
+  if(S.phase==='count')return[S.countWho,'Counting'];
+  return[null,''];
+}
+
+function render(){
+  placePegs();
+  const [act,tagText]=turnInfo();
+  for(const w of ['p','c']){
+    $('sc-'+w).textContent=S.scores[w];
+    $('sub-'+w).textContent=S.dealer===w?'Dealer':'';
+    $('chip-'+w).classList.toggle('on',act===w);
+    $('seat-'+w).classList.toggle('on',act===w);
+    $('tag-'+w).textContent=act===w?tagText:'';
+  }
+  const pegging=S.peg&&!S.peg.done, shown=S.peg&&S.peg.done;
+
+  const ch=$('cpuHand');ch.innerHTML='';
+  if(S.hands){
+    if(shown)sortH([...S.hands.c]).forEach(c=>ch.append(cardEl(c)));
+    else{const n=pegging?S.peg.c.length:S.hands.c.length;for(let i=0;i<n;i++)ch.append(backEl())}
+  }
+
+  const st=$('starter');st.innerHTML='';
+  st.append(S.starter?cardEl(S.starter):S.hands?backEl():blankEl());
+  const cr=$('crib');cr.innerHTML='';
+  cr.append(S.crib.length?backEl():blankEl());
+  $('cribLbl').textContent=S.dealer&&S.hands?`${poss(S.dealer)} crib (${S.crib.length})`:'Crib';
+
+  $('count').textContent=pegging?S.peg.count:'–';
+  const pile=$('pile');pile.innerHTML='';
+  if(pegging)S.peg.played.forEach(({c,w})=>pile.append(cardEl(c,{cls:'by-'+w})));
+
+  const hand=$('hand');hand.innerHTML='';
+  if(S.hands){
+    const cards=pegging?S.peg.p:S.hands.p;
+    cards.forEach((c,i)=>{
+      const el=cardEl(c,{btn:true});
+      if(S.phase==='discard'){
+        if(S.sel.includes(i))el.classList.add('sel');
+        el.setAttribute('aria-pressed',S.sel.includes(i));
+        el.onclick=()=>{
+          if(S.sel.includes(i))S.sel=S.sel.filter(x=>x!==i);
+          else if(S.sel.length<2)S.sel.push(i);
+          render();
+        };
+      }else if(S.phase==='peg'&&S.turn==='p'&&!S.timer){
+        if(val(c)+S.peg.count<=31){el.classList.add('ok');el.onclick=()=>playCard('p',c)}
+        else el.disabled=true;
+      }else el.disabled=true;
+      hand.append(el);
+    });
+  }
+
+  $('msg').textContent=S.msg||'';
+  const a=$('action');
+  if(S.action){a.hidden=false;a.textContent=S.action.label;a.disabled=S.phase==='discard'&&S.sel.length!==2}
+  else a.hidden=true;
+
+  const pn=$('panel');
+  if(S.panel){
+    pn.hidden=false;pn.innerHTML='';
+    const h=document.createElement('h2');h.textContent=S.panel.title;pn.append(h);
+    const row=document.createElement('div');row.className='row';row.style.minHeight='0';
+    S.panel.cards.forEach(([c,l])=>row.append(wrapLbl(cardEl(c),l)));pn.append(row);
+    if(S.panel.total!==undefined){
+      const ul=document.createElement('ul');
+      S.panel.items.forEach(([t,p])=>{const li=document.createElement('li');li.innerHTML=`<span>${t}</span><span>${p}</span>`;ul.append(li)});
+      const li=document.createElement('li');li.className='tot';li.innerHTML=`<span>Total</span><span>${S.panel.total}</span>`;ul.append(li);
+      pn.append(ul);
+    }
+  }else pn.hidden=true;
+
+  $('log').innerHTML=S.log.map(t=>`<div>${t}</div>`).join('');
+}
+$('action').onclick=()=>S.action&&S.action.fn();
+narrow.addEventListener('change',()=>placePegs());
+buildBoard();
+newGame();
+</script>
+</body>
+</html>
