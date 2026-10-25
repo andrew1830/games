@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chinese Checkers</title>
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#efe4cf" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14110e" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#efe4cf; --bg2:#e2d2b4; --ink:#2b2117; --muted:#7a6955; --panel:#fbf5ea; --line:#dccbab;
+  --accent:#a8322a; --accent-dk:#6f1d18; --accent-ink:#fff8ee; --btn:#fffaf2;
+  --wood-a:#d9a86a; --wood-b:#b77d40; --wood-rim:#7c4a20; --grain:.16;
+  --grid:rgba(90,50,15,.30); --hole:#5a3415; --hole-hi:rgba(255,235,200,.45);
+  --tint:.30; --sel:#ffd35a; --dest:#fff3c4; --dest-ring:#8a5a12;
+  --shadow:0 14px 34px rgba(80,45,10,.30);
+  --c-red:#d33a2c; --c-green:#2f9a4c; --c-blue:#2f6fd2; --c-yellow:#f0c32b; --c-purple:#8a4cc4; --c-white:#f3f0e8;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#191512; --bg2:#0d0b09; --ink:#eee5d8; --muted:#9d8f7e; --panel:#211d19; --line:#36302a;
+    --accent:#d0483c; --accent-dk:#7f251e; --accent-ink:#fff; --btn:#2a2520;
+    --wood-a:#4a2e1a; --wood-b:#2a190d; --wood-rim:#0f0804; --grain:.22;
+    --grid:rgba(255,220,170,.13); --hole:#0c0604; --hole-hi:rgba(255,220,170,.14);
+    --tint:.34; --sel:#ffcf4d; --dest:#ffe9a3; --dest-ring:#ffcf4d;
+    --shadow:0 14px 34px rgba(0,0,0,.7);
+  }
+}
+*{box-sizing:border-box}
+html{background:var(--bg2)}
+body{margin:0; min-height:100vh; color:var(--ink); font:16px/1.45 'Nunito Sans', system-ui, sans-serif;
+  background:radial-gradient(120% 900px at 50% 0%, var(--bg) 0%, var(--bg2) 100%) no-repeat; background-color:var(--bg2);
+  -webkit-tap-highlight-color:transparent}
+button{font:inherit; color:inherit}
+.wrap{max-width:1000px; margin:0 auto; padding:10px 16px 48px}
+.back{font-size:14px; color:var(--muted); text-decoration:none}
+.back:hover{color:var(--ink)}
+header{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin:6px 0 10px}
+h1{font:800 27px/1.05 Fraunces, Georgia, serif; margin:0; letter-spacing:-.01em}
+h1 em{font-style:normal; color:var(--accent)}
+.sub{font-size:13px; color:var(--muted); white-space:nowrap}
+
+.layout{display:grid; gap:20px}
+.play{width:100%; max-width:560px; margin:0 auto}
+@media (min-width:900px){ .layout{grid-template-columns:560px minmax(0,340px); justify-content:center; align-items:start} .side{position:sticky; top:16px} }
+
+.players{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px}
+.chip{display:flex; align-items:center; gap:6px; padding:4px 10px 4px 6px; border-radius:999px; background:var(--panel); border:1px solid var(--line); font-size:13px; font-weight:600; transition:box-shadow .2s, transform .2s}
+.chip .dot{width:16px; height:16px; border-radius:50%; background:var(--c); box-shadow:inset 0 -2px 3px rgba(0,0,0,.3), 0 0 0 1px rgba(0,0,0,.15)}
+.chip .n{color:var(--muted); font-weight:600}
+.chip.now{box-shadow:0 0 0 2px var(--sel); transform:translateY(-1px)}
+.chip.won{background:var(--sel); color:#2b2117}
+
+.boardwrap{position:relative}
+svg#board{display:block; width:100%; height:auto; touch-action:manipulation; user-select:none; -webkit-user-select:none; filter:drop-shadow(var(--shadow)); cursor:default}
+.marble{transition:transform .16s ease-in-out}
+.marble.moving{transition:transform .17s cubic-bezier(.3,.1,.3,1)}
+.marble.moving .ball{transform:scale(1.14)}
+.ball{transition:transform .15s}
+.mine{cursor:pointer}
+.dest{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.55}}
+.selring{animation:spin 5s linear infinite; transform-box:fill-box; transform-origin:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+.trail{fill:none; stroke-linecap:round; stroke-linejoin:round; opacity:.75}
+
+.status{display:flex; align-items:center; gap:10px; min-height:52px; margin:12px 2px 8px; font:600 17px/1.25 'Nunito Sans', sans-serif}
+.status .dot{flex:none; width:22px; height:22px; border-radius:50%; background:var(--c); box-shadow:inset 0 -3px 4px rgba(0,0,0,.3), 0 0 0 1px rgba(0,0,0,.15)}
+.status .dot.think{animation:bob .9s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-4px)}}
+.status b{font-family:Fraunces, Georgia, serif; font-weight:800; font-size:20px}
+.actions{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px}
+.btn{min-height:46px; border-radius:12px; border:1px solid var(--line); background:var(--btn); color:var(--ink); font-weight:800; font-size:15px; letter-spacing:.02em; cursor:pointer; box-shadow:0 2px 0 var(--line); padding:0 8px; white-space:nowrap}
+.btn:active{transform:translateY(1px); box-shadow:0 1px 0 var(--line)}
+.btn.primary{background:var(--accent); color:var(--accent-ink); border-color:transparent; box-shadow:0 3px 0 var(--accent-dk)}
+.btn:disabled{opacity:.4; cursor:default; transform:none}
+
+.card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:14px}
+.card h2{font:800 17px Fraunces, Georgia, serif; margin:0; display:inline}
+summary{cursor:pointer; list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:'\25B8'; display:inline-block; margin-right:8px; color:var(--muted); transition:transform .15s}
+details[open] summary::before{transform:rotate(90deg)}
+.rules ul{padding-left:18px; margin:10px 0 0}
+.rules li{margin:6px 0}
+.log{list-style:none; margin:10px 0 0; padding:0; font-size:14px}
+.log li{display:flex; align-items:center; gap:8px; padding:5px 0; border-top:1px solid var(--line)}
+.log li:first-child{border-top:0}
+.log .dot{width:12px; height:12px; border-radius:50%; background:var(--c); flex:none; box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+.log .muted{color:var(--muted); margin-left:auto; white-space:nowrap}
+.empty{color:var(--muted); font-size:14px; margin:8px 0 0}
+
+dialog{border:1px solid var(--line); border-radius:16px; background:var(--panel); color:var(--ink); width:min(420px, calc(100% - 32px)); padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.dhead{display:flex; justify-content:space-between; align-items:center}
+.dhead h2{font:800 22px Fraunces, Georgia, serif; margin:0}
+.x{border:0; background:none; font-size:20px; width:40px; height:40px; cursor:pointer; color:var(--muted)}
+dialog h3{font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:16px 0 8px}
+.seg{display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:4px; background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:4px}
+.seg button{border:0; background:transparent; border-radius:9px; min-height:40px; font-weight:800; cursor:pointer; color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink)}
+.note{font-size:13px; color:var(--muted); margin:6px 0 0}
+table.stats{width:100%; border-collapse:collapse; font-size:14px}
+table.stats th, table.stats td{padding:5px 4px; text-align:right; border-top:1px solid var(--line)}
+table.stats th:first-child, table.stats td:first-child{text-align:left}
+table.stats thead th{border-top:0; color:var(--muted); font-weight:600}
+.dfoot{display:flex; gap:8px; margin-top:16px}
+.dfoot .btn{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../">← All games</a>
+  <header>
+    <h1>Chinese <em>Checkers</em></h1>
+    <span class="sub" id="sub"></span>
+  </header>
+  <div class="layout">
+    <section class="play">
+      <div class="players" id="players"></div>
+      <div class="boardwrap"><svg id="board" role="img" aria-label="Chinese checkers board"></svg></div>
+      <div class="status" id="status" aria-live="polite"></div>
+      <div class="actions">
+        <button class="btn" id="btnUndo">↶ Undo</button>
+        <button class="btn" id="btnHint">Hint</button>
+        <button class="btn" id="btnNew">New game</button>
+      </div>
+    </section>
+    <aside class="side">
+      <div class="card">
+        <h2>Moves</h2>
+        <ol class="log" id="log"></ol>
+        <p class="empty" id="logEmpty">Moves will appear here.</p>
+      </div>
+      <details class="card rules" id="rules">
+        <summary><h2>How to play</h2></summary>
+        <ul>
+          <li>Race all 10 of your <b>red</b> marbles from the bottom point of the star into the point straight across.</li>
+          <li>On your turn, move one marble: either <b>step</b> to an empty neighboring hole, or <b>jump</b> over a single adjacent marble of any color into the empty hole just beyond. Jumps can chain in any direction, as far as you like. You can't mix a step with jumps.</li>
+          <li>Tap a marble to see where it can go, then tap a highlighted hole. The marble follows the jump path.</li>
+          <li>You can pass through other points of the star, but you can't stop in a point that isn't your home or your target.</li>
+          <li>Once a marble reaches your target point it stays there, though it can move around inside it.</li>
+          <li>The first player to fill their target point wins. If an opponent's marbles never left that point, they count toward filling it, so leaving them there can't block you.</li>
+          <li><b>Undo</b> takes back your last move and the computers' replies. <b>Hint</b> shows the move the Hard computer would make.</li>
+        </ul>
+      </details>
+    </aside>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog">
+    <div class="dhead"><h2>New game</h2><button class="x" value="close" aria-label="Close">✕</button></div>
+    <h3>Players</h3>
+    <div class="seg" id="segN">
+      <button type="button" data-v="2">2</button><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button><button type="button" data-v="6">6</button>
+    </div>
+    <p class="note" id="nNote"></p>
+    <h3>Computer</h3>
+    <div class="seg" id="segL">
+      <button type="button" data-v="easy">Easy</button><button type="button" data-v="medium">Medium</button><button type="button" data-v="hard">Hard</button>
+    </div>
+    <h3>Your record</h3>
+    <table class="stats" id="stats"></table>
+    <div class="dfoot">
+      <button type="button" class="btn" id="btnReset">Reset stats</button>
+      <button type="button" class="btn primary" id="btnStart">Start game</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+/*CORE-START*/
+const CC = (() => {
+  // ---- board: 121 holes of the six-pointed star, cube coordinates x+y+z=0 ----
+  const cells = [], index = new Map();
+  for (let x = -8; x <= 8; x++) for (let y = -8; y <= 8; y++) {
+    const z = -x - y;
+    if (z < -8 || z > 8) continue;
+    if ((x <= 4 && y <= 4 && z <= 4) || (x >= -4 && y >= -4 && z >= -4)) {
+      index.set(x + ',' + y, cells.length);
+      cells.push({ x, y, z });
+    }
+  }
+  const N = cells.length;
+  const DIRS = [[1, -1, 0], [1, 0, -1], [0, 1, -1], [-1, 1, 0], [-1, 0, 1], [0, -1, 1]];
+  const nb = cells.map(c => DIRS.map(([dx, dy]) => {
+    const k = index.get((c.x + dx) + ',' + (c.y + dy));
+    return k === undefined ? -1 : k;
+  }));
+  // Corners, clockwise from the top: 0 top, 1 upper right, 2 lower right, 3 bottom, 4 lower left, 5 upper left.
+  const cornerOf = c => c.z < -4 ? 0 : c.x > 4 ? 1 : c.y < -4 ? 2 : c.z > 4 ? 3 : c.x < -4 ? 4 : c.y > 4 ? 5 : -1;
+  const corner = cells.map(cornerOf);
+  const TIPS = [[4, 4, -8], [8, -4, -4], [4, -8, 4], [-4, -4, 8], [-8, 4, 4], [-4, 8, -4]];
+  // Hex distance from every hole to each corner's tip. The 10 holes nearest a tip are exactly that corner.
+  const dist = TIPS.map(t => cells.map(c => Math.max(Math.abs(c.x - t[0]), Math.abs(c.y - t[1]), Math.abs(c.z - t[2]))));
+  const cornerCells = [0, 1, 2, 3, 4, 5].map(k => cells.map((c, i) => i).filter(i => corner[i] === k));
+  // Seat order runs clockwise starting with the human at the bottom (corner 3).
+  const SETUPS = { 2: [3, 0], 3: [3, 5, 1], 4: [3, 5, 0, 2], 6: [3, 4, 5, 0, 1, 2] };
+
+  function newGame(n) {
+    const homes = SETUPS[n].slice(), targets = homes.map(h => (h + 3) % 6);
+    const board = new Int8Array(N).fill(-1);
+    homes.forEach((h, p) => cornerCells[h].forEach(i => { board[i] = p; }));
+    return build(n, board, 0, 0);
+  }
+  function build(n, boardArr, turn, ply) {
+    const homes = SETUPS[n].slice(), targets = homes.map(h => (h + 3) % 6);
+    const board = Int8Array.from(boardArr);
+    const pos = homes.map(() => []);
+    for (let i = 0; i < N; i++) if (board[i] >= 0) pos[board[i]].push(i);
+    return { n, homes, targets, board, pos, turn, ply };
+  }
+  const valid = (n, b) => !!SETUPS[n] && Array.isArray(b) && b.length === N &&
+    SETUPS[n].every((_, p) => b.filter(v => v === p).length === 10) && b.every(v => v === -1 || (v >= 0 && v < n));
+
+  // A move may not end in a corner that is neither the peg's home nor its target,
+  // and a peg that has reached its target may not leave it.
+  function canEnd(g, p, from, to) {
+    const ct = corner[to];
+    if (ct !== -1 && ct !== g.homes[p] && ct !== g.targets[p]) return false;
+    if (corner[from] === g.targets[p] && ct !== g.targets[p]) return false;
+    return true;
+  }
+  const seen = new Int16Array(N);
+  let stamp = 0;
+  const prevBuf = new Int16Array(N), queue = new Int16Array(N);
+  function movesFrom(g, p, from, out) {
+    const b = g.board;
+    for (let d = 0; d < 6; d++) {
+      const t = nb[from][d];
+      if (t >= 0 && b[t] < 0 && canEnd(g, p, from, t)) out.push({ from, to: t, path: [from, t], jumps: 0 });
+    }
+    // Jump chains: over one adjacent peg (any color) into the empty hole beyond, repeatedly.
+    stamp++; if (stamp > 30000) { seen.fill(0); stamp = 1; }
+    seen[from] = stamp; prevBuf[from] = -1;
+    let qh = 0, qt = 0; queue[qt++] = from;
+    while (qh < qt) {
+      const c = queue[qh++];
+      for (let d = 0; d < 6; d++) {
+        const o = nb[c][d];
+        if (o < 0 || o === from || b[o] < 0) continue;
+        const l = nb[o][d];
+        if (l < 0 || b[l] >= 0 || seen[l] === stamp) continue;
+        seen[l] = stamp; prevBuf[l] = c; queue[qt++] = l;
+        if (canEnd(g, p, from, l)) {
+          const path = [l];
+          for (let k = c; k !== -1; k = prevBuf[k]) path.push(k);
+          path.reverse();
+          out.push({ from, to: l, path, jumps: path.length - 1 });
+        }
+      }
+    }
+    return out;
+  }
+  function legalMoves(g, p) {
+    const out = [];
+    for (const c of g.pos[p]) movesFrom(g, p, c, out);
+    return out;
+  }
+  function apply(g, p, from, to) {
+    g.board[to] = p; g.board[from] = -1;
+    const a = g.pos[p]; a[a.indexOf(from)] = to;
+  }
+  // Win: every hole of the target corner is filled and at least one of them is yours.
+  // (Opponent pegs that never left their home there don't block you.)
+  function isWin(g, p) {
+    let own = 0;
+    for (const i of cornerCells[g.targets[p]]) {
+      const v = g.board[i];
+      if (v < 0) return false;
+      if (v === p) own++;
+    }
+    return own > 0;
+  }
+  function inTarget(g, p) { let k = 0; for (const c of g.pos[p]) if (corner[c] === g.targets[p]) k++; return k; }
+  // Sideways distance from the line joining a corner's tip to the opposite tip.
+  const AXIS = [2, 0, 1, 2, 0, 1]; // which cube coordinate runs tip-to-tip for each corner
+  const lat = TIPS.map((t, k) => cells.map(c => {
+    const v = [c.x, c.y, c.z]; const a = AXIS[k];
+    const o = [0, 1, 2].filter(i => i !== a);
+    return Math.abs(v[o[0]] - v[o[1]]) / 2;
+  }));
+  // Cost to finish (lower is better): squared distance to the target tip, so stragglers weigh more,
+  // plus a pull toward the center line where the jumping ladders are.
+  function cost(g, p) {
+    const D = dist[g.targets[p]], L = lat[g.targets[p]];
+    let s = 0;
+    for (const c of g.pos[p]) { const d = D[c]; s += d * d / 8 + 0.8 * L[c]; }
+    return s;
+  }
+  function order(ms, D) { for (const m of ms) m.gain = D[m.from] - D[m.to]; ms.sort((a, b) => b.gain - a.gain); }
+  // Lowest cost this player can reach in `depth` more moves of its own (beam-limited).
+  function plan(g, p, depth, beam) {
+    if (isWin(g, p)) return -1000 - depth;
+    if (depth === 0) return cost(g, p);
+    const ms = legalMoves(g, p);
+    if (!ms.length) return cost(g, p);
+    order(ms, dist[g.targets[p]]);
+    let best = Infinity;
+    const lim = Math.min(ms.length, beam);
+    for (let i = 0; i < lim; i++) {
+      const m = ms[i];
+      apply(g, p, m.from, m.to);
+      const v = plan(g, p, depth - 1, beam);
+      apply(g, p, m.to, m.from);
+      if (v < best) best = v;
+    }
+    return best;
+  }
+  const key = g => g.board.join('');
+  const LEVELS = { easy: { depth: 1, noise: 6 }, medium: { depth: 2, noise: 0 }, hard: { depth: 3, noise: 0 } };
+
+  // Picks a move for player p. It plans its own next few moves on the current board (opponents' pegs
+  // serve as ladders), prefers immediate progress on ties, and avoids repeating its recent positions.
+  function chooseMove(g, p, level, recent, rng = Math.random) {
+    const ms = legalMoves(g, p);
+    if (!ms.length) return null;
+    const cfg = LEVELS[level] || LEVELS.medium;
+    order(ms, dist[g.targets[p]]);
+    let pick = null;
+    for (const m of ms) {
+      apply(g, p, m.from, m.to);
+      let s;
+      if (isWin(g, p)) s = -1e6;
+      else s = plan(g, p, cfg.depth - 1, 14) + 0.3 * cost(g, p) + cfg.noise * rng();
+      if (recent && recent.has(key(g))) s += 40;
+      apply(g, p, m.to, m.from);
+      m.score = s - m.gain * 0.01 + rng() * 0.001;
+      if (!pick || m.score < pick.score) pick = m;
+    }
+    return pick;
+  }
+
+  // Computer-vs-computer game for testing. Returns { winner, plies }.
+  function simulate(n, levels, maxPly = 2000, rng = Math.random) {
+    const g = newGame(n);
+    const recent = Array.from({ length: n }, () => []);
+    let passes = 0;
+    while (g.ply < maxPly) {
+      const p = g.turn;
+      const m = chooseMove(g, p, levels[p], new Set(recent[p]), rng);
+      if (!m) { if (++passes >= n) return { winner: -1, plies: g.ply, g }; }
+      else {
+        passes = 0;
+        apply(g, p, m.from, m.to);
+        recent[p].push(key(g)); if (recent[p].length > 12) recent[p].shift();
+        for (let k = 0; k < n; k++) { const q = (p + k) % n; if (isWin(g, q)) return { winner: q, plies: g.ply + 1, g }; }
+      }
+      g.turn = (g.turn + 1) % n; g.ply++;
+    }
+    return { winner: -1, plies: g.ply, g, capped: true };
+  }
+
+  return { cells, N, nb, corner, cornerCells, dist, SETUPS, newGame, build, valid, canEnd, movesFrom, legalMoves,
+           apply, isWin, inTarget, cost, chooseMove, simulate, key };
+})();
+if (typeof module !== 'undefined') module.exports = CC;
+/*CORE-END*/
+
+(() => {
+  const NS = 'http://www.w3.org/2000/svg';
+  const KEY = 'chinese-checkers.v1';
+  const $ = id => document.getElementById(id);
+  const S = 10, SP = S * Math.sqrt(3);
+  const pt = c => [S * Math.sqrt(3) * (c.x + c.z / 2), S * 1.5 * c.z];
+  const XY = CC.cells.map(pt);
+  const CORNER_COLOR = ['green', 'yellow', 'purple', 'red', 'white', 'blue'];
+  const cap = s => s[0].toUpperCase() + s.slice(1);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const LEVEL_NAME = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+
+  // ---------- storage ----------
+  const store = { stats: {}, settings: { n: 2, level: 'medium' }, game: null };
+  try {
+    const o = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (o && typeof o === 'object') {
+      if (o.stats && typeof o.stats === 'object') store.stats = o.stats;
+      if (o.settings) Object.assign(store.settings, o.settings);
+      if (o.game) store.game = o.game;
+    }
+  } catch (e) {}
+  if (!CC.SETUPS[store.settings.n]) store.settings.n = 2;
+  if (!LEVEL_NAME[store.settings.level]) store.settings.level = 'medium';
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
+
+  // ---------- state ----------
+  let g, level, phase = 'human', sel = -1, destMap = new Map(), hint = null, msg = null;
+  let trails = [], log = [], undo = [], recent = [], myMoves = 0, passes = 0, token = 0, winner = -1;
+  const pegAt = new Int16Array(CC.N).fill(-1);
+  let marbles = [];
+  const color = p => CORNER_COLOR[g.homes[p]];
+  const nameOf = p => p === 0 ? 'You' : cap(color(p));
+
+  // ---------- build the board ----------
+  const svg = $('board');
+  const el = (tag, attrs, parent) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+  const xs = XY.map(p => p[0]), ys = XY.map(p => p[1]);
+  const PAD = 15;
+  const vb = [Math.min(...xs) - PAD, Math.min(...ys) - PAD, Math.max(...xs) - Math.min(...xs) + 2 * PAD, Math.max(...ys) - Math.min(...ys) + 2 * PAD];
+  svg.setAttribute('viewBox', vb.map(v => v.toFixed(2)).join(' '));
+  const defs = el('defs', {}, svg);
+  defs.innerHTML = `
+    <linearGradient id="wood" gradientUnits="userSpaceOnUse" x1="${vb[0]}" y1="${vb[1]}" x2="${vb[0] + vb[2]}" y2="${vb[1] + vb[3]}">
+      <stop offset="0" style="stop-color:var(--wood-a)"/><stop offset="1" style="stop-color:var(--wood-b)"/></linearGradient>
+    <radialGradient id="gloss" cx="35%" cy="30%" r="60%">
+      <stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".25" stop-color="#fff" stop-opacity=".35"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="shade" cx="50%" cy="45%" r="55%">
+      <stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".42"/></radialGradient>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.2" numOctaves="2" seed="11" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.22  0 0 0 0 0.1  0 0 0 0 0.02  0 0 0 -2.2 1.35" result="c"/>
+      <feComposite in="c" in2="SourceGraphic" operator="in"/>
+    </filter>`;
+  const tri = coords => coords.map(c => pt({ x: c[0], y: c[1], z: c[2] }).map(v => v.toFixed(2)).join(',')).join(' ');
+  const triA = tri([[-8, 4, 4], [4, -8, 4], [4, 4, -8]]), triB = tri([[8, -4, -4], [-4, 8, -4], [-4, -4, 8]]);
+  const base = el('g', {}, svg);
+  for (const t of [triA, triB]) el('polygon', { points: t, fill: 'var(--wood-rim)', stroke: 'var(--wood-rim)', 'stroke-width': 2 * PAD - 2, 'stroke-linejoin': 'round' }, base);
+  for (const t of [triA, triB]) el('polygon', { points: t, fill: 'url(#wood)', stroke: 'url(#wood)', 'stroke-width': 2 * PAD - 5, 'stroke-linejoin': 'round' }, base);
+  const grainG = el('g', { filter: 'url(#grain)', style: 'opacity:var(--grain)' }, base);
+  for (const t of [triA, triB]) el('polygon', { points: t, fill: '#000', stroke: '#000', 'stroke-width': 2 * PAD - 5, 'stroke-linejoin': 'round' }, grainG);
+  const tintG = el('g', {}, svg);
+  const tintEls = [0, 1, 2, 3, 4, 5].map(k => {
+    const cs = CC.cornerCells[k];
+    const tip = cs.find(i => CC.dist[k][i] === 0);
+    const far = cs.filter(i => CC.dist[k][i] === 3);
+    let a = far[0], b = far[1], best = -1;
+    for (const i of far) for (const j of far) { const d = Math.hypot(XY[i][0] - XY[j][0], XY[i][1] - XY[j][1]); if (d > best) { best = d; a = i; b = j; } }
+    const pts = [tip, a, b].map(i => XY[i].map(v => v.toFixed(2)).join(',')).join(' ');
+    return el('polygon', { points: pts, 'stroke-width': 15, 'stroke-linejoin': 'round',
+      style: `fill:var(--c-${CORNER_COLOR[k]});stroke:var(--c-${CORNER_COLOR[k]})` }, tintG);
+  });
+  let d = '';
+  CC.cells.forEach((c, i) => { for (let k = 0; k < 3; k++) { const j = CC.nb[i][k]; if (j >= 0) d += `M${XY[i][0].toFixed(2)} ${XY[i][1].toFixed(2)}L${XY[j][0].toFixed(2)} ${XY[j][1].toFixed(2)}`; } });
+  el('path', { d, stroke: 'var(--grid)', 'stroke-width': 0.9, fill: 'none' }, svg);
+  const holesG = el('g', {}, svg);
+  XY.forEach(([x, y]) => {
+    el('circle', { cx: x, cy: y + 0.7, r: 4.7, fill: 'var(--hole-hi)' }, holesG);
+    el('circle', { cx: x, cy: y, r: 4.5, fill: 'var(--hole)' }, holesG);
+  });
+  const trailG = el('g', {}, svg), hintG = el('g', {}, svg), marbleG = el('g', {}, svg), destG = el('g', {}, svg), selG = el('g', {}, svg);
+
+  function makeMarble(cell, p) {
+    const m = el('g', { class: 'marble' }, marbleG);
+    m.style.transform = `translate(${XY[cell][0]}px, ${XY[cell][1]}px)`;
+    const ball = el('g', { class: 'ball' }, m);
+    el('circle', { cy: 1.5, r: 7.5, fill: 'rgba(0,0,0,.35)' }, ball);
+    el('circle', { r: 7.3, style: `fill:var(--c-${color(p)})` }, ball);
+    el('circle', { r: 7.3, fill: 'url(#shade)' }, ball);
+    el('circle', { r: 7.3, fill: 'url(#gloss)' }, ball);
+    return { el: m, p };
+  }
+  function rebuildMarbles() {
+    marbleG.innerHTML = ''; marbles = []; pegAt.fill(-1);
+    for (let i = 0; i < CC.N; i++) if (g.board[i] >= 0) { pegAt[i] = marbles.length; marbles.push(makeMarble(i, g.board[i])); }
+  }
+
+  // ---------- input ----------
+  svg.addEventListener('click', e => {
+    const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
+    const ctm = svg.getScreenCTM(); if (!ctm) return;
+    const q = p.matrixTransform(ctm.inverse());
+    let best = -1, bd = SP * 0.62;
+    XY.forEach(([x, y], i) => { const dd = Math.hypot(x - q.x, y - q.y); if (dd < bd) { bd = dd; best = i; } });
+    if (best >= 0) tap(best);
+  });
+  function select(i) {
+    sel = i; destMap = new Map();
+    for (const m of CC.movesFrom(g, 0, i, [])) if (!destMap.has(m.to)) destMap.set(m.to, m);
+  }
+  function tap(i) {
+    if (phase !== 'human') return;
+    if (g.board[i] === 0) {
+      msg = null;
+      if (sel === i) { sel = -1; destMap.clear(); hint = null; }
+      else {
+        select(i);
+        if (hint && hint.from !== i) hint = null;
+        if (!destMap.size) msg = 'That marble has nowhere to go right now.';
+      }
+      render(); return;
+    }
+    if (sel >= 0 && destMap.has(i)) { humanMove(destMap.get(i)); return; }
+    if (sel >= 0) { sel = -1; destMap.clear(); hint = null; msg = null; render(); }
+  }
+
+  // ---------- turn flow ----------
+  async function animate(m) {
+    const id = pegAt[m.from], mm = marbles[id];
+    marbleG.appendChild(mm.el);
+    mm.el.classList.add('moving');
+    for (let k = 1; k < m.path.length; k++) {
+      const c = m.path[k];
+      mm.el.style.transform = `translate(${XY[c][0]}px, ${XY[c][1]}px)`;
+      await sleep(185);
+    }
+    mm.el.classList.remove('moving');
+    pegAt[m.to] = id; pegAt[m.from] = -1;
+  }
+  async function doMove(p, m, t) {
+    trails.push({ p, path: m.path });
+    renderTrails();
+    await animate(m);
+    if (t !== token) return false;
+    CC.apply(g, p, m.from, m.to);
+    log.push({ p, jumps: m.jumps, home: CC.inTarget(g, p) });
+    recent[p].push(CC.key(g)); if (recent[p].length > 12) recent[p].shift();
+    passes = 0;
+    return true;
+  }
+  async function humanMove(m) {
+    const t = token;
+    phase = 'anim'; sel = -1; destMap.clear(); hint = null; msg = null;
+    trails = [];
+    render();
+    if (!await doMove(0, m, t)) return;
+    myMoves++;
+    afterMove(0, t);
+  }
+  function afterMove(p, t) {
+    if (t !== token) return;
+    for (let k = 0; k < g.n; k++) { const q = (p + k) % g.n; if (CC.isWin(g, q)) { endGame(q); return; } }
+    if (passes >= g.n) { endGame(-2); return; }
+    g.turn = (p + 1) % g.n; g.ply++;
+    persist();
+    nextTurn(t);
+  }
+  function nextTurn(t) { if (g.turn === 0) startHuman(t); else aiTurn(t); }
+  function startHuman(t) {
+    if (!CC.legalMoves(g, 0).length) {
+      log.push({ p: 0, pass: true }); passes++;
+      msg = 'You have no legal moves, so you pass.';
+      render();
+      setTimeout(() => afterMove(0, t), 900);
+      return;
+    }
+    phase = 'human';
+    if (!undo.length || undo[undo.length - 1].ply !== g.ply) {
+      undo.push({ board: Array.from(g.board), ply: g.ply, myMoves, log: log.slice(-40), recent: recent.map(a => a.slice()), passes });
+      if (undo.length > 15) undo.shift();
+    }
+    persist();
+    render();
+  }
+  async function aiTurn(t) {
+    const p = g.turn;
+    phase = 'ai'; msg = null; render();
+    await sleep(g.n === 2 ? 380 : 220);
+    if (t !== token) return;
+    const m = CC.chooseMove(g, p, level, new Set(recent[p]));
+    if (!m) { log.push({ p, pass: true }); passes++; render(); await sleep(400); afterMove(p, t); return; }
+    if (!await doMove(p, m, t)) return;
+    afterMove(p, t);
+  }
+  function endGame(w) {
+    phase = 'over'; winner = w; sel = -1; destMap.clear(); hint = null; msg = null;
+    const s = store.stats[g.n] || (store.stats[g.n] = { played: 0, won: 0 });
+    s.played++; if (w === 0) s.won++;
+    store.game = null; save();
+    render();
+  }
+  function persist() {
+    if (phase === 'over') return;
+    store.game = { n: g.n, level, board: Array.from(g.board), turn: g.turn, ply: g.ply, myMoves, passes,
+                   log: log.slice(-40), undo, recent };
+    save();
+  }
+  function startGame(n, lvl) {
+    token++;
+    level = lvl; g = CC.newGame(n);
+    trails = []; log = []; undo = []; recent = Array.from({ length: n }, () => []); myMoves = 0; passes = 0; winner = -1;
+    sel = -1; destMap.clear(); hint = null; msg = null;
+    rebuildMarbles();
+    startHuman(token);
+  }
+  function restore() {
+    const o = store.game;
+    try {
+      if (!o || !CC.valid(o.n, o.board) || !LEVEL_NAME[o.level]) return false;
+      level = o.level;
+      g = CC.build(o.n, o.board, (o.turn | 0) % o.n, o.ply | 0);
+      myMoves = o.myMoves | 0; passes = o.passes | 0; log = Array.isArray(o.log) ? o.log : [];
+      undo = Array.isArray(o.undo) ? o.undo.filter(s => s && CC.valid(o.n, s.board)) : [];
+      recent = Array.isArray(o.recent) && o.recent.length === o.n ? o.recent : Array.from({ length: o.n }, () => []);
+      trails = []; winner = -1;
+      rebuildMarbles();
+      token++;
+      nextTurn(token);
+      return true;
+    } catch (e) { return false; }
+  }
+  function doUndo() {
+    if (phase !== 'human' || undo.length < 2) return;
+    undo.pop();
+    const s = undo[undo.length - 1];
+    g = CC.build(g.n, s.board, 0, s.ply);
+    myMoves = s.myMoves; log = s.log.slice(); recent = s.recent.map(a => a.slice()); passes = s.passes || 0;
+    trails = []; sel = -1; destMap.clear(); hint = null; msg = 'Took back your last move.';
+    token++;
+    rebuildMarbles(); persist(); render();
+  }
+  function doHint() {
+    if (phase !== 'human') return;
+    const m = CC.chooseMove(g, 0, 'hard', new Set(recent[0]));
+    if (!m) return;
+    hint = m; select(m.from);
+    msg = m.jumps ? `Try this ${m.jumps}-hop jump.` : 'Try this step.';
+    render();
+  }
+
+  // ---------- render ----------
+  function renderTrails() {
+    trailG.innerHTML = '';
+    for (const t of trails) {
+      const c = `var(--c-${color(t.p)})`;
+      el('polyline', { points: t.path.map(i => XY[i].join(',')).join(' '), class: 'trail',
+        style: `stroke:${c}`, 'stroke-width': 2.4, 'stroke-dasharray': '0.1 4' }, trailG);
+      el('circle', { cx: XY[t.path[0]][0], cy: XY[t.path[0]][1], r: 5.6, fill: 'none', style: `stroke:${c}`, 'stroke-width': 1.3, opacity: .8 }, trailG);
+    }
+  }
+  function render() {
+    // corner tints: strong for homes in play, faint for empty points
+    tintEls.forEach((t, k) => { t.style.opacity = g.homes.includes(k) ? 'var(--tint)' : '0.10'; });
+    marbles.forEach(m => m.el.classList.toggle('mine', phase === 'human' && m.p === 0));
+    renderTrails();
+    hintG.innerHTML = '';
+    if (hint) {
+      el('polyline', { points: hint.path.map(i => XY[i].join(',')).join(' '), class: 'trail', style: 'stroke:var(--sel)', 'stroke-width': 2.6, 'stroke-dasharray': '3 2.5' }, hintG);
+      el('circle', { cx: XY[hint.to][0], cy: XY[hint.to][1], r: 8.4, fill: 'none', style: 'stroke:var(--sel)', 'stroke-width': 2 }, hintG);
+    }
+    destG.innerHTML = '';
+    for (const [to, m] of destMap) {
+      el('circle', { cx: XY[to][0], cy: XY[to][1], r: m.jumps ? 3.8 : 3.3, class: 'dest', style: 'fill:var(--dest);stroke:var(--dest-ring)', 'stroke-width': 1 }, destG);
+    }
+    selG.innerHTML = '';
+    if (sel >= 0) el('circle', { cx: XY[sel][0], cy: XY[sel][1], r: 9.6, class: 'selring', fill: 'none', style: 'stroke:var(--sel)', 'stroke-width': 1.8, 'stroke-dasharray': '3.2 2' }, selG);
+
+    // players
+    $('players').innerHTML = g.homes.map((h, p) =>
+      `<span class="chip${p === g.turn && phase !== 'over' ? ' now' : ''}${p === winner ? ' won' : ''}" style="--c:var(--c-${color(p)})">` +
+      `<span class="dot"></span>${nameOf(p)} <span class="n">${CC.inTarget(g, p)}/10</span></span>`).join('');
+    $('sub').textContent = `${g.n} players · ${LEVEL_NAME[level]}`;
+
+    // status
+    const st = $('status');
+    let dotColor = color(g.turn), think = false, html;
+    if (phase === 'over') {
+      if (winner === 0) { dotColor = color(0); html = `<span><b>You win!</b> All ten home in ${myMoves} moves.</span>`; }
+      else if (winner === -2) html = '<span><b>Draw.</b> Nobody can move.</span>';
+      else { dotColor = color(winner); html = `<span><b>${nameOf(winner)} wins.</b> You had ${CC.inTarget(g, 0)} of 10 home.</span>`; }
+    } else if (phase === 'ai') { think = true; html = `<span>${nameOf(g.turn)} is thinking…</span>`; }
+    else if (phase === 'anim') { html = `<span>${g.turn === 0 ? 'Moving…' : nameOf(g.turn) + ' is moving…'}</span>`; }
+    else {
+      dotColor = color(0);
+      html = `<span><b>Your move.</b> ${msg || (sel >= 0 ? 'Tap a glowing hole.' : 'Tap a red marble.')}</span>`;
+    }
+    if (phase !== 'human' && msg && phase !== 'over') html = `<span>${msg}</span>`;
+    st.innerHTML = `<span class="dot${think ? ' think' : ''}" style="--c:var(--c-${dotColor})"></span>${html}`;
+
+    $('btnUndo').disabled = phase !== 'human' || undo.length < 2;
+    $('btnHint').disabled = phase !== 'human';
+    $('btnNew').classList.toggle('primary', phase === 'over');
+
+    // log
+    const rows = log.slice(window.innerWidth < 900 ? -8 : -14).reverse();
+    $('logEmpty').hidden = rows.length > 0;
+    $('log').innerHTML = rows.map(e => {
+      const c = CORNER_COLOR[g.homes[e.p]];
+      const what = e.pass ? 'passed' : e.jumps ? `jumped ${e.jumps} ${e.jumps === 1 ? 'hop' : 'hops'}` : 'stepped';
+      return `<li><span class="dot" style="--c:var(--c-${c})"></span>${e.p === 0 ? 'You' : cap(c)} ${what}<span class="muted">${e.pass ? '' : e.home + '/10 home'}</span></li>`;
+    }).join('');
+  }
+
+  // ---------- dialog ----------
+  let pickN = store.settings.n, pickL = store.settings.level;
+  const NOTES = {
+    2: 'You against one computer, racing to opposite points.',
+    3: 'You and two computers, each racing to an empty point.',
+    4: 'Two pairs of opposite points. Every rival crosses your path.',
+    6: 'Every point in play. Crowded in the middle.',
+  };
+  function renderDialog() {
+    $('segN').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === pickN));
+    $('segL').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === pickL));
+    $('nNote').textContent = NOTES[pickN];
+    const rows = [2, 3, 4, 6].map(n => { const s = store.stats[n] || { played: 0, won: 0 }; return `<tr><td>${n} players</td><td>${s.played}</td><td>${s.won}</td><td>${s.played ? Math.round(100 * s.won / s.played) + '%' : '–'}</td></tr>`; });
+    $('stats').innerHTML = `<thead><tr><th></th><th>Played</th><th>Won</th><th>Win %</th></tr></thead><tbody>${rows.join('')}</tbody>`;
+  }
+  $('segN').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { pickN = +b.dataset.v; renderDialog(); } });
+  $('segL').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { pickL = b.dataset.v; renderDialog(); } });
+  $('btnNew').addEventListener('click', () => { pickN = store.settings.n; pickL = store.settings.level; renderDialog(); $('dlg').showModal(); });
+  $('btnStart').addEventListener('click', () => {
+    if (phase !== 'over' && myMoves > 0) {
+      if (!confirm('Abandon the current game? It counts as a loss.')) return;
+      const s = store.stats[g.n] || (store.stats[g.n] = { played: 0, won: 0 }); s.played++;
+    }
+    store.settings = { n: pickN, level: pickL }; save();
+    $('dlg').close();
+    startGame(pickN, pickL);
+  });
+  $('btnReset').addEventListener('click', () => { if (confirm('Reset your Chinese Checkers record?')) { store.stats = {}; save(); renderDialog(); } });
+  $('btnUndo').addEventListener('click', doUndo);
+  $('btnHint').addEventListener('click', doHint);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && sel >= 0 && phase === 'human') { sel = -1; destMap.clear(); hint = null; render(); } });
+  if (window.matchMedia('(min-width: 900px)').matches) $('rules').open = true;
+
+  if (!restore()) startGame(store.settings.n, store.settings.level);
+  window.__cc = { get g() { return g; }, get hint() { return hint; }, get phase() { return phase; }, get winner() { return winner; }, store, tapCell: tap, XY };
+})();
+
+</script>
+</body>
+</html>
