@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mancala">
+<title>Mancala</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@700;800&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#efe6d8; --fg:#2a1f17; --muted:#6e5e50; --panel:#f8f2e8; --line:#d8c8b2; --accent:#a4451c; --accent-fg:#fff;
+  --wood1:#c08450; --wood2:#97602f; --wood3:#6b3f1f;
+  --pit:#4a2a12; --pit2:#6a4020;
+  --glow:rgba(255,214,140,.75); --chip:rgba(28,14,6,.72); --chip-fg:#fbecd6;
+  --display:"Alegreya SC",Georgia,serif;
+  --body:"Alegreya Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#17120e; --fg:#efe5d8; --muted:#a8988a; --panel:#221a14; --line:#3a2e25; --accent:#e3864f; --accent-fg:#1b120c;
+  --wood1:#7a4b26; --wood2:#5b3519; --wood3:#3e2410;
+  --pit:#22130a; --pit2:#3a2212;
+  --glow:rgba(255,196,120,.6); --chip:rgba(0,0,0,.7); --chip-fg:#f6e3c8;
+  color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.45 var(--body);
+  padding:max(14px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
+main{max-width:880px;margin:0 auto}
+.backlink{display:inline-block;margin:0 0 6px;font-size:14px;font-weight:700;color:var(--muted);text-decoration:none}
+.backlink:hover{color:var(--accent)}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(1.9rem,7vw,2.5rem);line-height:1;margin:0;letter-spacing:.02em}
+.record{color:var(--muted);font-size:15px}
+
+.status{min-height:48px;display:flex;align-items:center;justify-content:center;text-align:center;gap:8px;
+  margin:6px 0 10px;padding:8px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);font-weight:700;font-size:18px}
+.status .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex:none}
+.status.cpu .dot{background:var(--muted);animation:blink 1s infinite}
+.status.over{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+.status.over .dot{display:none}
+@keyframes blink{50%{opacity:.25}}
+
+/* ---------- Board ---------- */
+.board{--grain:0deg;position:relative;display:grid;gap:9px;padding:14px;border-radius:30px;
+  grid-template-columns:1fr 1fr;
+  background:
+    radial-gradient(ellipse at 25% 15%,rgba(255,255,255,.16),transparent 55%),
+    repeating-linear-gradient(calc(var(--grain) + 2deg),rgba(0,0,0,.07) 0 2px,transparent 2px 9px),
+    repeating-linear-gradient(calc(var(--grain) - 1deg),rgba(255,255,255,.05) 0 1px,transparent 1px 14px),
+    linear-gradient(calc(var(--grain) + 90deg),var(--wood1),var(--wood2) 70%,var(--wood1));
+  box-shadow:0 2px 0 var(--wood3),0 10px 24px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.25),inset 0 -2px 4px rgba(0,0,0,.25);
+  user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.pit{position:relative;display:block;margin:0;padding:0;border:0;font:inherit;color:inherit;
+  grid-column:var(--vc);grid-row:var(--vr);aspect-ratio:1.85;border-radius:50%;
+  background:radial-gradient(ellipse at 50% 30%,var(--pit2),var(--pit) 72%);
+  box-shadow:inset 0 6px 12px rgba(0,0,0,.6),inset 0 -2px 3px rgba(255,255,255,.1),0 1px 0 rgba(255,255,255,.22);
+  container-type:size;cursor:default;transition:box-shadow .15s}
+.pit.store{aspect-ratio:auto;height:78px;border-radius:999px}
+.pit.can{cursor:pointer;box-shadow:inset 0 6px 12px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.22),0 0 0 3px var(--glow)}
+.pit.can:hover,.pit.can:focus-visible{outline:none;box-shadow:inset 0 6px 12px rgba(0,0,0,.6),0 0 0 4px var(--glow),0 0 16px 2px var(--glow)}
+.pit.src{box-shadow:inset 0 6px 12px rgba(0,0,0,.6),0 0 0 3px rgba(255,255,255,.55)}
+.pit.flash{animation:flash .35s ease-out}
+.pit.cap{animation:cap .7s ease-out}
+.pit.hint{animation:hint 1s ease-in-out infinite}
+@keyframes flash{0%{box-shadow:inset 0 6px 12px rgba(0,0,0,.6),0 0 0 4px rgba(255,255,255,.8)}}
+@keyframes cap{0%,60%{box-shadow:inset 0 0 0 200px rgba(255,90,50,.35),0 0 0 4px #ff8a5b}}
+@keyframes hint{50%{box-shadow:inset 0 6px 12px rgba(0,0,0,.6),0 0 0 5px #fff,0 0 22px 6px var(--glow)}}
+.stones{position:absolute;inset:0;pointer-events:none}
+.st{--s:21cqmin;--rx:33cqw;--ry:31cqh;position:absolute;width:var(--s);height:var(--s);border-radius:50%;
+  left:calc(50% + var(--u) * var(--rx) - var(--s) / 2);top:calc(50% + var(--v) * var(--ry) - var(--s) / 2);
+  background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.9) 0 7%,rgba(255,255,255,0) 32%),
+             radial-gradient(circle at 50% 55%,var(--c) 45%,color-mix(in srgb,var(--c) 60%,#000) 100%);
+  box-shadow:0 1px 2px rgba(0,0,0,.65)}
+.store .st{--s:22cqmin;--rx:37cqw;--ry:30cqh;top:calc(44% + var(--v) * var(--ry) - var(--s) / 2)}
+.count{position:absolute;right:-3px;bottom:-3px;min-width:25px;height:25px;padding:0 7px;border-radius:13px;
+  display:grid;place-items:center;background:var(--chip);color:var(--chip-fg);font:700 14px/1 var(--body);pointer-events:none}
+.store .count{display:flex;align-items:center;right:auto;left:50%;bottom:5px;transform:translateX(-50%);height:24px;font-size:13px;white-space:nowrap;letter-spacing:.04em}
+.store .count b{font-size:16px;margin-left:4px}
+.p-me .count{background:color-mix(in srgb,var(--accent) 80%,#000)}
+
+@media (min-width:560px){
+  .board{--grain:90deg;grid-template-columns:1.15fr repeat(6,1fr) 1.15fr;gap:10px;padding:16px;border-radius:40px}
+  .pit{grid-column:var(--hc);grid-row:var(--hr);aspect-ratio:1}
+  .pit.store{height:auto;border-radius:999px}
+  .store .st{--ry:38cqh;--rx:32cqw;top:calc(46% + var(--v) * var(--ry) - var(--s) / 2)}
+  .store .count{bottom:8px}
+}
+
+/* ---------- Controls ---------- */
+.controls{display:flex;gap:10px;margin:14px 0 6px;flex-wrap:wrap}
+button.btn{flex:1 1 0;min-width:90px;min-height:48px;padding:10px 8px;white-space:nowrap;border-radius:12px;border:1px solid var(--line);
+  background:var(--panel);color:var(--fg);font:700 17px var(--body);cursor:pointer}
+button.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+button.btn:disabled{opacity:.45;cursor:default}
+button.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+details{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:0 14px}
+summary{cursor:pointer;padding:12px 0;font-family:var(--display);font-weight:700;font-size:18px;list-style-position:inside}
+details[open] summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+details > :last-child{margin-bottom:14px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.opts label{display:grid;gap:4px;font-size:14px;color:var(--muted);font-weight:700}
+.opts select{min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:500 16px var(--body);padding:0 10px}
+.note{color:var(--muted);font-size:14px;margin:10px 0 0}
+.stats{display:grid;grid-template-columns:auto repeat(3,1fr);gap:4px 12px;font-size:15px;margin-top:4px}
+.stats div:nth-child(-n+4){color:var(--muted);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.05em}
+.linkbtn{background:none;border:0;padding:6px 0;color:var(--accent);font:700 14px var(--body);cursor:pointer}
+ol.log{margin:0;padding:0 0 0 36px;font-size:15px;max-height:220px;overflow:auto}
+ol.log li{padding:2px 0}
+ol.log .cpu{color:var(--muted)}
+.rules p,.rules li{font-size:16px}
+.rules ul{padding-left:20px;margin:6px 0}
+</style>
+</head>
+<body>
+<main>
+  <a class="backlink" href="../">← All games</a>
+  <header>
+    <h1>Mancala</h1>
+    <span class="record" id="record"></span>
+  </header>
+
+  <div class="status" id="status" role="status" aria-live="polite"><span class="dot"></span><span id="statusText">Loading…</span></div>
+
+  <div class="board" id="board" aria-label="Mancala board"></div>
+
+  <div class="controls">
+    <button class="btn primary" id="newBtn" type="button">New game</button>
+    <button class="btn" id="undoBtn" type="button">Undo</button>
+    <button class="btn" id="hintBtn" type="button">Hint</button>
+  </div>
+
+  <details open>
+    <summary>Moves</summary>
+    <ol class="log" id="log" reversed></ol>
+  </details>
+
+  <details>
+    <summary>Options &amp; stats</summary>
+    <div class="opts">
+      <label>Computer
+        <select id="optDiff"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select>
+      </label>
+      <label>First move
+        <select id="optFirst"><option value="you">You</option><option value="cpu">Computer</option><option value="alt">Alternate</option></select>
+      </label>
+      <label>Seeds per pit
+        <select id="optSeeds"><option>3</option><option>4</option><option>5</option><option>6</option></select>
+      </label>
+      <label>Speed
+        <select id="optSpeed"><option value="normal">Normal</option><option value="fast">Fast</option><option value="instant">Instant</option></select>
+      </label>
+    </div>
+    <p class="note">Speed changes right away. The rest apply when you start a new game.</p>
+    <div class="stats" id="stats"></div>
+    <button class="linkbtn" id="resetStats" type="button">Reset stats</button>
+  </details>
+
+  <details class="rules">
+    <summary>How to play</summary>
+    <p>This is <b>Kalah</b>, the standard Mancala rule set. Your six pits are the bottom row (on a phone, the left column) and your store is on the right (bottom on a phone). The computer owns the other side.</p>
+    <ul>
+      <li>On your turn, pick up every seed in one of your pits and sow them one at a time, counter-clockwise, into the following pits — including your own store, but skipping the computer's store.</li>
+      <li><b>Extra turn:</b> if your last seed lands in your store, go again.</li>
+      <li><b>Capture:</b> if your last seed lands in an empty pit on your side and the pit directly across has seeds, take both the last seed and everything across into your store.</li>
+      <li><b>End:</b> as soon as either side's six pits are all empty, the game ends. Each player adds the seeds left on their own side to their store. Most seeds wins.</li>
+    </ul>
+    <p>Undo takes back your last move and the computer's reply. Hint asks the Hard engine for your best move.</p>
+  </details>
+</main>
+
+<script>
+/*ENGINE*/
+const Engine = (() => {
+  const store = p => p === 0 ? 6 : 13;
+  const owner = i => i < 6 ? 0 : (i > 6 && i < 13) ? 1 : -1;
+  const sum = (b, a, z) => { let s = 0; for (let i = a; i < z; i++) s += b[i]; return s; };
+
+  function init(seeds, turn) {
+    const b = new Array(14).fill(seeds); b[6] = 0; b[13] = 0;
+    return { b, turn };
+  }
+  function legal(s) {
+    if (s.turn < 0) return [];
+    const o = s.turn * 7, r = [];
+    for (let i = o; i < o + 6; i++) if (s.b[i] > 0) r.push(i);
+    return r;
+  }
+  // Apply a move. Returns the new state plus everything the UI needs to animate it.
+  function apply(s, pit) {
+    const p = s.turn;
+    if (p < 0 || owner(pit) !== p || s.b[pit] === 0) throw new Error('Illegal move ' + pit);
+    const b = s.b.slice(), own = store(p), opp = store(1 - p);
+    let n = b[pit], i = pit; b[pit] = 0;
+    const path = [];
+    while (n > 0) {
+      i = (i + 1) % 14;
+      if (i === opp) continue;
+      b[i]++; n--; path.push(i);
+    }
+    let capture = null;
+    if (owner(i) === p && b[i] === 1 && b[12 - i] > 0) {
+      const taken = b[12 - i];
+      capture = { pit: i, opp: 12 - i, taken, amount: taken + 1 };
+      b[own] += taken + 1; b[i] = 0; b[12 - i] = 0;
+    }
+    const extra = i === own;
+    let sweep = null, ended = false;
+    const s0 = sum(b, 0, 6), s1 = sum(b, 7, 13);
+    if (s0 === 0 || s1 === 0) {
+      ended = true; sweep = [s0, s1];
+      for (let k = 0; k < 6; k++) { b[k] = 0; b[k + 7] = 0; }
+      b[6] += s0; b[13] += s1;
+    }
+    const turn = ended ? -1 : extra ? p : 1 - p;
+    return { state: { b, turn }, player: p, pit, path, last: i, capture, extra, sweep, ended };
+  }
+  function winner(b) { return b[6] > b[13] ? 0 : b[13] > b[6] ? 1 : -1; }
+
+  // ---- Search (minimax with alpha-beta; extra turns keep the same side to move) ----
+  function ordered(s) {
+    const own = store(s.turn), m = legal(s);
+    const score = x => {
+      const n = s.b[x];
+      if (x + n === own) return 100;                       // lands in store
+      const last = (x + n) % 14;
+      if (n < 13 && owner(last) === s.turn && s.b[last] === 0 && last !== x && s.b[12 - last] > 0) return 50 + s.b[12 - last];
+      return x % 7;                                        // closer to store first
+    };
+    return m.sort((a, c) => score(c) - score(a));
+  }
+  function evaluate(b, me, half) {
+    const mine = me === 0 ? b[6] : b[13], theirs = me === 0 ? b[13] : b[6];
+    const d = mine - theirs;
+    if (mine > half) return 1000 + d;
+    if (theirs > half) return -1000 + d;
+    const sideMine = me === 0 ? sum(b, 0, 6) : sum(b, 7, 13);
+    const sideTheirs = me === 0 ? sum(b, 7, 13) : sum(b, 0, 6);
+    return d + 0.1 * (sideMine - sideTheirs);
+  }
+  function terminal(b, me) {
+    const d = me === 0 ? b[6] - b[13] : b[13] - b[6];
+    return d > 0 ? 1000 + d : d < 0 ? -1000 + d : 0;
+  }
+  function mm(s, depth, a, bt, me, ctx) {
+    if ((++ctx.nodes & 2047) === 0 && Date.now() > ctx.deadline) ctx.timeout = true;
+    if (ctx.timeout) return 0;
+    if (s.turn < 0) return terminal(s.b, me);
+    const mine = me === 0 ? s.b[6] : s.b[13], theirs = me === 0 ? s.b[13] : s.b[6];
+    if (mine > ctx.half || theirs > ctx.half || depth === 0) return evaluate(s.b, me, ctx.half);
+    const moves = ordered(s);
+    if (s.turn === me) {
+      let v = -Infinity;
+      for (const m of moves) {
+        v = Math.max(v, mm(apply(s, m).state, depth - 1, a, bt, me, ctx));
+        if (v > a) a = v;
+        if (a >= bt) break;
+      }
+      return v;
+    } else {
+      let v = Infinity;
+      for (const m of moves) {
+        v = Math.min(v, mm(apply(s, m).state, depth - 1, a, bt, me, ctx));
+        if (v < bt) bt = v;
+        if (a >= bt) break;
+      }
+      return v;
+    }
+  }
+  function rootSearch(s, depth, ctx, first) {
+    const me = s.turn;
+    let moves = ordered(s);
+    if (first != null) moves = [first, ...moves.filter(m => m !== first)];
+    let best = null, bestV = -Infinity, ties = [];
+    for (const m of moves) {
+      const v = mm(apply(s, m).state, depth - 1, bestV - 1e-9, Infinity, me, ctx);
+      if (ctx.timeout) return null;
+      if (v > bestV + 1e-9) { bestV = v; best = m; ties = [m]; }
+      else if (Math.abs(v - bestV) <= 1e-9) ties.push(m);
+    }
+    return { move: best, value: bestV, ties };
+  }
+  // opts: {level:'easy'|'medium'|'hard'|'hint', timeMs, rand}
+  function choose(s, opts = {}) {
+    const rand = opts.rand || Math.random;
+    const moves = legal(s);
+    if (moves.length === 1) return moves[0];
+    const half = sum(s.b, 0, 14) / 2;
+    const level = opts.level || 'hard';
+    if (level === 'easy') {
+      if (rand() < 0.4) return moves[Math.floor(rand() * moves.length)];
+      const r = rootSearch(s, 1, { nodes: 0, deadline: Infinity, half });
+      return r.ties[Math.floor(rand() * r.ties.length)];
+    }
+    if (level === 'medium') {
+      const r = rootSearch(s, 4, { nodes: 0, deadline: Infinity, half });
+      return r.ties[Math.floor(rand() * r.ties.length)];
+    }
+    // hard / hint: iterative deepening under a time budget
+    const deadline = Date.now() + (opts.timeMs || 800);
+    let best = ordered(s)[0];
+    for (let d = 2; d <= 30; d++) {
+      const r = rootSearch(s, d, { nodes: 0, deadline, half }, best);
+      if (!r) break;
+      best = r.move;
+      if (Math.abs(r.value) >= 1000) break;                // forced result found
+      if (Date.now() > deadline) break;
+    }
+    return best;
+  }
+  return { init, legal, apply, winner, choose, store, owner };
+})();
+/*END ENGINE*/
+
+if (typeof document !== 'undefined') (() => {
+  const KEY = 'mancala.v1';
+  const COLORS = ['#3d7ec9', '#2f9e6a', '#d9a227', '#c8473f', '#e9e3d6', '#7a59c2', '#2aa6b0', '#e07b39'];
+  const SPEEDS = { normal: { step: 180, ai: 550 }, fast: { step: 70, ai: 250 }, instant: { step: 0, ai: 80 } };
+  const blankStats = () => ({ easy: { w: 0, l: 0, d: 0 }, medium: { w: 0, l: 0, d: 0 }, hard: { w: 0, l: 0, d: 0 } });
+
+  let saved = { opts: { diff: 'medium', first: 'you', seeds: 4, speed: 'normal' }, stats: blankStats(), lastFirst: 1 };
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      saved.opts = Object.assign(saved.opts, s.opts || {});
+      saved.stats = Object.assign(blankStats(), s.stats || {});
+      if (s.lastFirst === 0 || s.lastFirst === 1) saved.lastFirst = s.lastFirst;
+    }
+  } catch (e) {}
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {} };
+
+  const $ = id => document.getElementById(id);
+  const boardEl = $('board');
+  const pits = [];
+  let state, game, colors, history, log, busy = false, hintPit = -1, token = 0;
+
+  // ---- Build the board once ----
+  for (let i = 0; i < 14; i++) {
+    const isStore = i === 6 || i === 13;
+    const el = document.createElement(isStore || i > 6 ? 'div' : 'button');
+    el.className = 'pit' + (isStore ? ' store' : '') + (i <= 6 ? ' p-me' : ' p-cpu');
+    if (!isStore && i < 6) { el.type = 'button'; el.addEventListener('click', () => humanMove(i)); }
+    let vc, vr, hc, hr;
+    if (i < 6) { vc = 1; vr = i + 2; hc = i + 2; hr = 2; }
+    else if (i > 6 && i < 13) { vc = 2; vr = 12 - i + 2; hc = 12 - i + 2; hr = 1; }
+    else if (i === 6) { vc = '1 / 3'; vr = 8; hc = 8; hr = '1 / 3'; }
+    else { vc = '1 / 3'; vr = 1; hc = 1; hr = '1 / 3'; }
+    el.style.setProperty('--vc', vc); el.style.setProperty('--vr', vr);
+    el.style.setProperty('--hc', hc); el.style.setProperty('--hr', hr);
+    el.innerHTML = '<div class="stones"></div><span class="count"></span>';
+    boardEl.appendChild(el);
+    pits.push(el);
+  }
+
+  // ---- Stones ----
+  const hash = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+  const randColor = () => COLORS[Math.floor(Math.random() * COLORS.length)];
+  function syncColors() {
+    for (let i = 0; i < 14; i++) {
+      while (colors[i].length < state.b[i]) colors[i].push(randColor());
+      while (colors[i].length > state.b[i]) colors[i].pop();
+    }
+  }
+  function stonesHTML(i, list) {
+    const n = list.length, N = Math.max(n, 8);
+    let h = '';
+    for (let k = 0; k < n; k++) {
+      let r = Math.sqrt((k + 0.55) / N) * 0.92 + (hash(i, k) - 0.5) * 0.08;
+      const a = k * 2.39996 + i * 1.3 + (hash(k, i) - 0.5) * 0.5;
+      r = Math.min(r, 1);
+      h += `<i class="st" style="--u:${(r * Math.cos(a)).toFixed(3)};--v:${(r * Math.sin(a)).toFixed(3)};--c:${list[k]}"></i>`;
+    }
+    return h;
+  }
+
+  // ---- Rendering ----
+  const pitName = i => i < 6 ? 'pit ' + (i + 1) : 'pit ' + (i - 6);
+  function render() {
+    const canPlay = !busy && state.turn === 0;
+    for (let i = 0; i < 14; i++) {
+      const el = pits[i], n = colors[i].length;
+      el.querySelector('.stones').innerHTML = stonesHTML(i, colors[i]);
+      const c = el.querySelector('.count');
+      if (i === 6) c.innerHTML = 'YOU<b>' + n + '</b>';
+      else if (i === 13) c.innerHTML = 'CPU<b>' + n + '</b>';
+      else c.textContent = n;
+      if (i < 6) {
+        const ok = canPlay && state.b[i] > 0;
+        el.classList.toggle('can', ok);
+        el.disabled = !ok;
+        el.setAttribute('aria-label', `Your ${pitName(i)}, ${n} seed${n === 1 ? '' : 's'}`);
+      } else {
+        el.setAttribute('aria-label', (i === 6 ? 'Your store' : i === 13 ? 'Computer store' : 'Computer ' + pitName(i)) + `, ${n} seed${n === 1 ? '' : 's'}`);
+      }
+      el.classList.toggle('hint', i === hintPit);
+    }
+    $('undoBtn').disabled = busy || state.turn !== 0 || history.length === 0;
+    $('hintBtn').disabled = busy || state.turn !== 0;
+  }
+  function setStatus(text, mode) {
+    $('statusText').textContent = text;
+    $('status').className = 'status' + (mode ? ' ' + mode : '');
+  }
+  function renderLog() {
+    $('log').innerHTML = log.slice().reverse().map(e => `<li class="${e.cpu ? 'cpu' : ''}">${e.text}</li>`).join('') || '<li>No moves yet.</li>';
+  }
+  function renderStats() {
+    const st = saved.stats, d = saved.opts.diff;
+    const cur = st[d];
+    $('record').textContent = `${d[0].toUpperCase() + d.slice(1)}: ${cur.w}W · ${cur.l}L · ${cur.d}D`;
+    let h = '<div></div><div>Won</div><div>Lost</div><div>Drawn</div>';
+    for (const k of ['easy', 'medium', 'hard']) h += `<div>${k[0].toUpperCase() + k.slice(1)}</div><div>${st[k].w}</div><div>${st[k].l}</div><div>${st[k].d}</div>`;
+    $('stats').innerHTML = h;
+  }
+  const flash = (i, cls = 'flash') => { const el = pits[i]; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); setTimeout(() => el.classList.remove(cls), 800); };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const speed = () => SPEEDS[saved.opts.speed] || SPEEDS.normal;
+
+  // ---- Game flow ----
+  function newGame() {
+    token++;
+    const o = saved.opts;
+    let first;
+    if (o.first === 'you') first = 0;
+    else if (o.first === 'cpu') first = 1;
+    else { first = 1 - saved.lastFirst; }
+    saved.lastFirst = first; persist();
+    game = { diff: o.diff, seeds: +o.seeds, over: false };
+    state = Engine.init(game.seeds, first);
+    colors = Array.from({ length: 14 }, () => []);
+    syncColors();
+    history = []; log = []; busy = false; hintPit = -1;
+    renderLog(); renderStats();
+    next();
+  }
+
+  function describe(res, who) {
+    const name = who === 0 ? 'You' : 'Computer';
+    const seeds = res.path.length;
+    let t = `${name}: ${pitName(res.pit)} (${seeds})`;
+    const bits = [];
+    if (res.capture) bits.push(`captured ${res.capture.amount}`);
+    if (res.extra && !res.ended) bits.push('extra turn');
+    if (bits.length) t += ' → ' + bits.join(', ');
+    return t;
+  }
+
+  async function animate(res, my) {
+    const { step } = speed();
+    const src = res.pit;
+    const hand = colors[src].splice(0);
+    pits[src].classList.add('src');
+    render();
+    for (const i of res.path) {
+      if (step) await sleep(step);
+      if (my !== token) return false;
+      colors[i].push(hand.shift() || randColor());
+      render(); if (step) flash(i);
+    }
+    pits[src].classList.remove('src');
+    if (res.capture) {
+      if (step) await sleep(step * 2);
+      if (my !== token) return false;
+      const st = Engine.store(res.player);
+      flash(res.capture.pit, 'cap'); flash(res.capture.opp, 'cap');
+      if (step) await sleep(step * 2);
+      if (my !== token) return false;
+      colors[st].push(...colors[res.capture.pit].splice(0), ...colors[res.capture.opp].splice(0));
+      render(); if (step) flash(st);
+    }
+    if (res.sweep) {
+      if (step) await sleep(step * 3);
+      if (my !== token) return false;
+      for (let k = 0; k < 6; k++) { colors[6].push(...colors[k].splice(0)); colors[13].push(...colors[k + 7].splice(0)); }
+      render();
+    }
+    return true;
+  }
+
+  async function play(pit) {
+    const my = token;
+    busy = true; hintPit = -1;
+    const who = state.turn;
+    const res = Engine.apply(state, pit);
+    setStatus(who === 0 ? 'Sowing…' : 'Computer is sowing…', who === 1 ? 'cpu' : '');
+    const ok = await animate(res, my);
+    if (!ok || my !== token) return;
+    state = res.state;
+    syncColors();
+    let entry = describe(res, who);
+    if (res.sweep) entry += ` — game over (sides swept: you +${res.sweep[0]}, computer +${res.sweep[1]})`;
+    log.push({ text: entry, cpu: who === 1 });
+    renderLog();
+    busy = false;
+    next(res);
+  }
+
+  function humanMove(pit) {
+    if (busy || state.turn !== 0 || state.b[pit] === 0) return;
+    history.push({ state: { b: state.b.slice(), turn: state.turn }, colors: colors.map(c => c.slice()), logLen: log.length });
+    play(pit);
+  }
+
+  function next(res) {
+    render();
+    if (state.turn < 0) return finish();
+    if (state.turn === 0) {
+      const extra = res && res.player === 0 && res.extra;
+      const cap = res && res.player === 1 && res.capture ? ` Computer captured ${res.capture.amount}.` : '';
+      setStatus(extra ? 'Extra turn! Go again.' : 'Your turn.' + cap, '');
+      return;
+    }
+    const extra = res && res.player === 1 && res.extra;
+    setStatus(extra ? 'Computer gets an extra turn…' : 'Computer is thinking…', 'cpu');
+    busy = true; render();
+    const my = token;
+    setTimeout(() => {
+      if (my !== token) return;
+      const t0 = Date.now();
+      const m = Engine.choose(state, { level: game.diff, timeMs: 800 });
+      const wait = Math.max(0, speed().ai - (Date.now() - t0));
+      setTimeout(() => { if (my === token) play(m); }, wait);
+    }, 40);
+  }
+
+  function finish() {
+    game.over = true;
+    const b = state.b, w = Engine.winner(b);
+    const rec = saved.stats[game.diff];
+    if (w === 0) { rec.w++; setStatus(`You win, ${b[6]}–${b[13]}!`, 'over'); }
+    else if (w === 1) { rec.l++; setStatus(`Computer wins, ${b[13]}–${b[6]}.`, 'over'); }
+    else { rec.d++; setStatus(`Draw, ${b[6]}–${b[13]}.`, 'over'); }
+    persist(); renderStats(); render();
+    $('undoBtn').disabled = true; $('hintBtn').disabled = true;
+  }
+
+  // ---- Buttons & options ----
+  $('newBtn').addEventListener('click', newGame);
+  $('undoBtn').addEventListener('click', () => {
+    if (busy || state.turn !== 0 || !history.length) return;
+    const h = history.pop();
+    state = h.state; colors = h.colors; log.length = h.logLen; hintPit = -1;
+    renderLog(); render(); setStatus('Move taken back. Your turn.', '');
+  });
+  $('hintBtn').addEventListener('click', () => {
+    if (busy || state.turn !== 0) return;
+    setStatus('Thinking…', 'cpu');
+    setTimeout(() => {
+      const m = Engine.choose(state, { level: 'hint', timeMs: 700 });
+      hintPit = m; render();
+      setStatus(`Hint: play your ${pitName(m)} (${state.b[m]} seed${state.b[m] === 1 ? '' : 's'}).`, '');
+    }, 30);
+  });
+  const bindOpt = (id, key, live) => {
+    const el = $(id); el.value = String(saved.opts[key]);
+    el.addEventListener('change', () => {
+      saved.opts[key] = key === 'seeds' ? +el.value : el.value;
+      persist();
+      if (key === 'diff') renderStats();
+    });
+  };
+  bindOpt('optDiff', 'diff'); bindOpt('optFirst', 'first'); bindOpt('optSeeds', 'seeds'); bindOpt('optSpeed', 'speed');
+  $('resetStats').addEventListener('click', () => {
+    if (!confirm('Reset all win/loss stats?')) return;
+    saved.stats = blankStats(); persist(); renderStats();
+  });
+
+  newGame();
+})();
+</script>
+</body>
+</html>
