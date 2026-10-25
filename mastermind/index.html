@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mastermind</title>
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ece2cf" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131211" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Barlow+Condensed:wght@500;600;700&family=Righteous&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ece2cf; --bg2:#ded0b4;
+  --ink:#2a2018; --muted:#7b6a57; --panel:#f8f1e4; --line:#d6c6a9;
+  --accent:#b8322a; --accent-dk:#7e1f19; --accent-ink:#fff8ee;
+  --btn:#fffaf1; --btn-ink:#2a2018;
+  --board-a:#a76c3d; --board-b:#7b4724; --board-edge:#4f2c14; --grain:rgba(60,25,5,.10);
+  --hole-in:#22130a; --hole-rim:rgba(255,230,200,.20);
+  --num:#f3dcb8; --active-bg:rgba(255,222,150,.20); --active-line:#ffd27a;
+  --shield-a:#352619; --shield-b:#1d140d; --shield-ink:#e9c46a;
+  --red:#d8352c; --blue:#2c6fd8; --green:#2a9a49; --yellow:#f3c623; --orange:#f07a1c; --purple:#8e4ac6;
+  --key-exact:#e0362c; --key-color:#f8f5ef;
+  --shadow:0 12px 30px rgba(70,35,10,.28);
+  --slot:46px; --peg:34px; --rowh:38px; --numw:22px; --keyw:34px; --gap:5px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#161513; --bg2:#0c0b0a;
+    --ink:#ece5da; --muted:#9a8f83; --panel:#1e1c1a; --line:#332f2a;
+    --accent:#d4443a; --accent-dk:#8a2620; --accent-ink:#fff;
+    --btn:#272420; --btn-ink:#ece5da;
+    --board-a:#2c2c2d; --board-b:#121213; --board-edge:#000; --grain:rgba(255,255,255,.022);
+    --hole-in:#000; --hole-rim:rgba(255,255,255,.10);
+    --num:#86827c; --active-bg:rgba(255,205,110,.09); --active-line:#e0ae55;
+    --shield-a:#3b3734; --shield-b:#1d1b19; --shield-ink:#e0ae55;
+    --shadow:0 12px 30px rgba(0,0,0,.65);
+  }
+}
+@media (max-width:360px){ :root{ --slot:42px; --peg:31px; --gap:4px; } }
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:radial-gradient(120% 900px at 50% 0%, var(--bg) 0%, var(--bg2) 100%) no-repeat;
+  background-color:var(--bg2); color:var(--ink);
+  font:16px/1.45 Barlow, system-ui, sans-serif;
+  -webkit-tap-highlight-color:transparent; min-height:100vh;
+}
+button{font:inherit; color:inherit}
+.wrap{max-width:960px; margin:0 auto; padding:10px 16px 48px}
+.back{font:500 14px 'Barlow Condensed', sans-serif; color:var(--muted); text-decoration:none; letter-spacing:.03em}
+.back:hover{color:var(--ink)}
+header{display:flex; align-items:center; justify-content:space-between; gap:10px 14px; margin:8px 0 14px; flex-wrap:wrap}
+h1{font-family:Righteous, sans-serif; font-weight:400; font-size:30px; letter-spacing:.07em; margin:0; line-height:1}
+h1 span{color:var(--accent)}
+.tabs{display:flex; background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:3px}
+.tabs button{border:0; background:transparent; font:600 15px 'Barlow Condensed', sans-serif; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); padding:7px 13px; border-radius:999px; min-height:36px; cursor:pointer}
+@media (max-width:520px){ .tabs .long{display:none} h1{font-size:24px; letter-spacing:.05em} .tabs button{padding:6px 12px; min-height:34px} }
+.tabs button[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink)}
+
+.layout{display:grid; gap:22px}
+.play{width:100%; max-width:420px; margin:0 auto}
+@media (min-width:860px){
+  .layout{grid-template-columns:420px minmax(0,380px); justify-content:center; align-items:start}
+  .side{position:sticky; top:16px}
+}
+
+/* ---------- board ---------- */
+.board{
+  position:relative; border-radius:18px; padding:12px 10px 12px;
+  background:
+    repeating-linear-gradient(91deg, var(--grain) 0 2px, transparent 2px 9px, var(--grain) 9px 10px, transparent 10px 23px),
+    linear-gradient(180deg, var(--board-a), var(--board-b));
+  border:1px solid var(--board-edge);
+  box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -2px 0 rgba(0,0,0,.35);
+}
+.grid6{display:grid; grid-template-columns:var(--numw) repeat(4, var(--slot)) var(--keyw); column-gap:var(--gap); align-items:center; justify-content:center}
+.coderow{position:relative; overflow:hidden; border-radius:11px; margin:0 2px 10px; height:calc(var(--rowh) + 8px); background:rgba(0,0,0,.22); box-shadow:inset 0 2px 5px rgba(0,0,0,.4)}
+.coderow .num{font-size:11px; letter-spacing:.08em}
+.shield{
+  position:absolute; inset:0; z-index:3; border-radius:11px;
+  background:linear-gradient(180deg, var(--shield-a), var(--shield-b));
+  display:flex; align-items:center; justify-content:center; gap:22px;
+  font:400 20px Righteous, sans-serif; color:var(--shield-ink);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 2px 6px rgba(0,0,0,.45);
+  transition:transform .65s cubic-bezier(.55,-0.25,.3,1.25);
+}
+.shield small{font:700 11px 'Barlow Condensed', sans-serif; letter-spacing:.22em; opacity:.7; position:absolute; left:12px; top:50%; transform:translateY(-50%) rotate(-90deg)}
+.coderow.open .shield{transform:translateY(-108%)}
+
+.rows{display:flex; flex-direction:column-reverse; gap:2px}
+.row{height:var(--rowh); border-radius:11px; transition:background .2s, box-shadow .2s; margin:0 2px}
+.row.active{background:var(--active-bg); box-shadow:inset 0 0 0 1.5px var(--active-line)}
+.num{font:600 13px 'Barlow Condensed', sans-serif; color:var(--num); text-align:center; opacity:.9}
+.row.active .num{color:var(--active-line); opacity:1}
+
+.hole{width:var(--slot); height:var(--rowh); display:grid; place-items:center; position:relative; border:0; background:none; padding:0; cursor:default; outline:none}
+.hole::before{
+  content:""; position:absolute; width:14px; height:14px; border-radius:50%;
+  background:radial-gradient(circle at 50% 38%, #000 0 35%, var(--hole-in) 72%);
+  box-shadow:inset 0 2px 3px rgba(0,0,0,.95), 0 1px 0 var(--hole-rim);
+}
+.row.active .hole, .coderow.editing .hole{cursor:pointer}
+.hole.cursor::after{
+  content:""; position:absolute; width:calc(var(--peg) + 8px); height:calc(var(--peg) + 8px);
+  border-radius:50%; border:2px dashed var(--active-line); animation:spin 6s linear infinite; z-index:2; pointer-events:none;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hole:focus-visible::after{content:""; position:absolute; inset:2px; border-radius:50%; border:2px solid var(--active-line)}
+
+.peg, .swatch{
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,.9) 0 7%, rgba(255,255,255,.28) 19%, transparent 40%),
+    radial-gradient(circle at 62% 78%, transparent 38%, rgba(0,0,0,.38) 100%),
+    var(--c);
+}
+.peg{
+  position:relative; z-index:1; width:var(--peg); height:var(--peg); border-radius:50%;
+  box-shadow:0 3px 4px rgba(0,0,0,.45), inset 0 -2px 3px rgba(0,0,0,.25);
+  display:grid; place-items:center;
+  font:700 14px 'Barlow Condensed', sans-serif; color:var(--t); text-shadow:0 1px 2px rgba(0,0,0,.35);
+}
+.peg::after, .swatch::after{content:attr(data-s); display:none}
+body.syms .peg::after, body.syms .swatch::after{display:block}
+.pop{animation:pop .22s ease-out both}
+@keyframes pop{0%{transform:scale(.35)} 70%{transform:scale(1.12)} 100%{transform:scale(1)}}
+.win{animation:hop .5s ease-in-out both}
+@keyframes hop{0%,100%{transform:translateY(0)} 40%{transform:translateY(-9px) scale(1.06)}}
+
+.keys{display:grid; grid-template-columns:repeat(2,12px); grid-template-rows:repeat(2,12px); gap:4px; justify-content:center}
+.k{width:12px; height:12px; border-radius:50%; background:var(--hole-in); box-shadow:inset 0 1px 2px rgba(0,0,0,.95), 0 1px 0 var(--hole-rim); transform:scale(.55)}
+.k.exact, .k.color{transform:none; box-shadow:0 1px 2px rgba(0,0,0,.6)}
+.k.exact{background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.75) 0 12%, transparent 45%), var(--key-exact)}
+.k.color{background:radial-gradient(circle at 35% 30%, #fff 0 15%, transparent 50%), var(--key-color)}
+.k.reveal{animation:pop .25s ease-out both}
+
+@keyframes shake{20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)}}
+.shake{animation:shake .35s}
+
+/* ---------- controls ---------- */
+.status{min-height:46px; margin:10px 2px 6px; font:600 18px/1.25 'Barlow Condensed', sans-serif; letter-spacing:.02em}
+.status.warn{color:var(--accent)}
+.status .big{font-size:22px}
+.palette{display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin:4px 0 12px; justify-items:center}
+.swatch{
+  width:100%; max-width:54px; min-width:42px; aspect-ratio:1; border:0; border-radius:50%; cursor:pointer;
+  box-shadow:0 3px 5px rgba(0,0,0,.35), inset 0 -2px 3px rgba(0,0,0,.25);
+  display:grid; place-items:center; font:700 17px 'Barlow Condensed', sans-serif; color:var(--t); text-shadow:0 1px 2px rgba(0,0,0,.35);
+  transition:transform .08s, opacity .15s;
+}
+.swatch:active{transform:scale(.9)}
+.swatch:disabled{opacity:.25; cursor:default}
+.palette.off .swatch{opacity:.3; pointer-events:none}
+
+.actions{display:grid; grid-template-columns:1fr 1fr 1.35fr; gap:8px}
+.btn{
+  min-height:48px; border-radius:12px; border:1px solid var(--line); background:var(--btn); color:var(--btn-ink);
+  font:600 17px 'Barlow Condensed', sans-serif; letter-spacing:.05em; text-transform:uppercase; cursor:pointer;
+  box-shadow:0 2px 0 var(--line); padding:0 8px; white-space:nowrap;
+}
+.btn:active{transform:translateY(1px); box-shadow:0 1px 0 var(--line)}
+.btn.primary{background:var(--accent); color:var(--accent-ink); border-color:transparent; box-shadow:0 3px 0 var(--accent-dk)}
+.btn:disabled{opacity:.4; cursor:default; transform:none}
+.btn[hidden]{display:none}
+.minor{display:flex; gap:8px; margin-top:10px}
+.minor .btn{flex:1; min-height:42px; font-size:15px}
+
+/* ---------- side ---------- */
+.card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:14px}
+.card h2{font:700 15px 'Barlow Condensed', sans-serif; text-transform:uppercase; letter-spacing:.1em; margin:0; color:var(--muted); display:inline}
+summary{cursor:pointer; list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:'\25B8'; display:inline-block; margin-right:8px; color:var(--muted); transition:transform .15s}
+details[open] summary::before{transform:rotate(90deg)}
+.rules ul{padding-left:18px; margin:10px 0 0}
+.rules li{margin:6px 0}
+.mini{display:inline-block; width:11px; height:11px; border-radius:50%; vertical-align:-1px; box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.mini.exact{background:var(--key-exact)} .mini.color{background:var(--key-color)}
+.log{list-style:none; padding:0; margin:10px 0 0; font:500 16px/1.3 'Barlow Condensed', sans-serif}
+.log li{display:flex; align-items:center; gap:8px; padding:5px 0; border-top:1px solid var(--line)}
+.log li:first-child{border-top:0}
+.log .lp{display:inline-flex; gap:3px}
+.log .lp i{width:14px; height:14px; border-radius:50%; background:var(--c); box-shadow:inset 0 -1px 2px rgba(0,0,0,.3)}
+.log .fb{display:inline-flex; gap:2px; min-width:50px}
+.log .fb i{width:9px; height:9px; border-radius:50%; box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.log .muted{color:var(--muted); margin-left:auto; text-align:right}
+
+/* ---------- dialog ---------- */
+dialog{border:1px solid var(--line); border-radius:16px; background:var(--panel); color:var(--ink); width:min(420px, calc(100% - 32px)); padding:18px 18px 16px}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.dhead{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px}
+.dhead h2{font:400 22px Righteous, sans-serif; margin:0; letter-spacing:.05em}
+.x{border:0; background:none; font-size:20px; width:40px; height:40px; cursor:pointer; color:var(--muted)}
+dialog h3{font:700 14px 'Barlow Condensed', sans-serif; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin:16px 0 8px}
+.statgrid{display:grid; grid-template-columns:repeat(4,1fr); text-align:center; gap:4px}
+.statgrid b{display:block; font:700 30px/1.1 'Barlow Condensed', sans-serif}
+.statgrid span{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em}
+.dist{display:grid; gap:3px}
+.dist div{display:grid; grid-template-columns:18px 1fr; gap:6px; align-items:center; font:600 14px 'Barlow Condensed', sans-serif}
+.dist .bar{background:var(--line); color:var(--ink); border-radius:4px; padding:1px 6px; min-width:22px; text-align:right; width:var(--w)}
+.dist .bar.hot{background:var(--accent); color:var(--accent-ink)}
+.opt{display:flex; gap:10px; align-items:flex-start; padding:8px 0; cursor:pointer}
+.opt input{width:20px; height:20px; margin:1px 0 0; accent-color:var(--accent)}
+.opt small{display:block; color:var(--muted)}
+.dfoot{display:flex; gap:8px; margin-top:14px}
+.dfoot .btn{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../">← All games</a>
+  <header>
+    <h1>MASTER<span>MIND</span></h1>
+    <div class="tabs" role="group" aria-label="Mode">
+      <button id="tabBreak" aria-pressed="true">Break<span class="long"> the code</span></button>
+      <button id="tabSet" aria-pressed="false">Set<span class="long"> the code</span></button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <section class="play">
+      <div class="board">
+        <div class="coderow grid6" id="coderow">
+          <div class="num" id="codeLabel"></div>
+          <div class="shield" id="shield" aria-label="Hidden code"><small>CODE</small>? &nbsp;? &nbsp;? &nbsp;?</div>
+        </div>
+        <div class="rows" id="rows"></div>
+      </div>
+
+      <div class="status" id="status" aria-live="polite"></div>
+      <div class="palette" id="palette"></div>
+      <div class="actions">
+        <button class="btn" id="btnBack">⌫ Clear</button>
+        <button class="btn" id="btnHint">Hint</button>
+        <button class="btn primary" id="btnGo">Check</button>
+      </div>
+      <div class="minor">
+        <button class="btn" id="btnNew">New game</button>
+        <button class="btn" id="btnSolve">Give up</button>
+        <button class="btn" id="btnStats">Stats</button>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="card" id="logCard" hidden>
+        <h2>Computer's log</h2>
+        <ol class="log" id="log"></ol>
+      </div>
+      <details class="card rules" id="rules">
+        <summary><h2>How to play</h2></summary>
+        <ul>
+          <li>A secret code of <b>4 pegs</b> is chosen from <b>6 colors</b>. Colors can repeat (you can turn repeats off in Options).</li>
+          <li>You get <b>10 guesses</b>. Fill the glowing row, then tap <b>Check</b>. Tap a placed peg to select it; tap it again to remove it.</li>
+          <li>Each guess earns key pegs: <i class="mini exact"></i> <b>red</b> = right color in the right hole, <i class="mini color"></i> <b>white</b> = right color in the wrong hole. Reds are always shown first, so their position tells you nothing about which peg they mean.</li>
+          <li>Each peg scores at most once. If the code has one blue and you guess two blues, only one of them can earn a key peg.</li>
+          <li><b>Hint</b> fills in the guess that leaves the fewest possible codes in the worst case (Knuth's method). <b>Give up</b> lets the computer finish the game and counts as a loss.</li>
+          <li><b>Set the code</b> flips the roles: pick a secret and watch the computer crack it. With repeats on, it never needs more than 5 guesses.</li>
+          <li>Keyboard: <b>1–6</b> place colors, <b>←/→</b> move, <b>Backspace</b> clears, <b>Enter</b> checks, <b>H</b> for a hint.</li>
+        </ul>
+      </details>
+    </aside>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog">
+    <div class="dhead"><h2>Stats</h2><button class="x" value="close" aria-label="Close">✕</button></div>
+    <div class="statgrid" id="statgrid"></div>
+    <h3>Guesses to crack it</h3>
+    <div class="dist" id="dist"></div>
+    <h3>Options</h3>
+    <label class="opt"><input type="checkbox" id="optDups"><span>Allow repeated colors<small>Classic rules. Takes effect on your next game.</small></span></label>
+    <label class="opt"><input type="checkbox" id="optSyms"><span>Show letters on pegs<small>Helps tell the colors apart.</small></span></label>
+    <div class="dfoot">
+      <button type="button" class="btn" id="btnReset">Reset stats</button>
+      <button class="btn primary" value="close">Done</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+/*CORE-START*/
+const MM = (() => {
+  const cg = new Int8Array(10), cs = new Int8Array(10);
+  // Feedback as a number: blacks*10 + whites.
+  function scoreKey(g, s) {
+    let b = 0;
+    cg.fill(0); cs.fill(0);
+    for (let i = 0; i < g.length; i++) {
+      if (g[i] === s[i]) b++; else { cg[g[i]]++; cs[s[i]]++; }
+    }
+    let w = 0;
+    for (let k = 0; k < 10; k++) w += cg[k] < cs[k] ? cg[k] : cs[k];
+    return b * 10 + w;
+  }
+  function score(g, s) { const k = scoreKey(g, s); return [Math.floor(k / 10), k % 10]; }
+  function allCodes(pegs, colors, dups) {
+    const out = [], cur = [];
+    (function rec() {
+      if (cur.length === pegs) { out.push(cur.slice()); return; }
+      for (let c = 0; c < colors; c++) {
+        if (!dups && cur.includes(c)) continue;
+        cur.push(c); rec(); cur.pop();
+      }
+    })();
+    return out;
+  }
+  function consistent(codes, history) {
+    return codes.filter(c => history.every(h => scoreKey(h.g, c) === h.fb[0] * 10 + h.fb[1]));
+  }
+  // Knuth minimax: choose the guess whose worst-case partition is smallest;
+  // prefer guesses that could be the answer, then the lowest code.
+  function bestGuess(all, S) {
+    if (!S.length) return null;
+    if (S.length <= 2) return S[0].slice();
+    const inS = new Set(S.map(c => c.join('')));
+    const counts = new Int32Array(50);
+    let best = null, bestMax = Infinity, bestIn = false;
+    for (const g of all) {
+      counts.fill(0);
+      let max = 0, over = false;
+      for (const s of S) {
+        const v = ++counts[scoreKey(g, s)];
+        if (v > max) { max = v; if (max > bestMax) { over = true; break; } }
+      }
+      if (over) continue;
+      const gin = inS.has(g.join(''));
+      if (max < bestMax || (gin && !bestIn)) { best = g; bestMax = max; bestIn = gin; }
+    }
+    return best.slice();
+  }
+  const firstCache = {};
+  function firstGuess(all, pegs, colors, dups) {
+    if (dups && pegs === 4 && colors === 6) return [0, 0, 1, 1];
+    const k = [pegs, colors, dups].join();
+    if (!firstCache[k]) firstCache[k] = bestGuess(all, all);
+    return firstCache[k].slice();
+  }
+  function nextGuess(all, history, pegs, colors, dups) {
+    if (!history.length) return firstGuess(all, pegs, colors, dups);
+    return bestGuess(all, consistent(all, history));
+  }
+  function solve(secret, all, colors, dups, maxRows = 10) {
+    const hist = [];
+    while (hist.length < maxRows) {
+      const g = nextGuess(all, hist, secret.length, colors, dups);
+      const fb = score(g, secret);
+      hist.push({ g, fb });
+      if (fb[0] === secret.length) break;
+    }
+    return hist;
+  }
+  return { score, scoreKey, allCodes, consistent, bestGuess, firstGuess, nextGuess, solve };
+})();
+if (typeof module !== 'undefined') module.exports = MM;
+/*CORE-END*/
+
+(() => {
+  const PEGS = 4, NCOL = 6, ROWS = 10;
+  const COLORS = [
+    { n: 'Red',    v: 'var(--red)',    s: 'R', t: '#fff' },
+    { n: 'Blue',   v: 'var(--blue)',   s: 'B', t: '#fff' },
+    { n: 'Green',  v: 'var(--green)',  s: 'G', t: '#fff' },
+    { n: 'Yellow', v: 'var(--yellow)', s: 'Y', t: '#4a3800' },
+    { n: 'Orange', v: 'var(--orange)', s: 'O', t: '#fff' },
+    { n: 'Purple', v: 'var(--purple)', s: 'P', t: '#fff' },
+  ];
+  const KEY = 'mastermind.v1';
+  const $ = id => document.getElementById(id);
+  const empty = () => Array(PEGS).fill(null);
+
+  // ---------- storage ----------
+  const freshStats = () => ({ played: 0, won: 0, streak: 0, best: 0, dist: Array(ROWS).fill(0) });
+  const store = { stats: freshStats(), opts: { dups: true, syms: false }, game: null };
+  try {
+    const o = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (o && typeof o === 'object') {
+      if (o.stats) Object.assign(store.stats, o.stats);
+      if (o.opts) Object.assign(store.opts, o.opts);
+      if (o.game) store.game = o.game;
+    }
+  } catch (e) {}
+  if (!Array.isArray(store.stats.dist) || store.stats.dist.length !== ROWS) store.stats.dist = Array(ROWS).fill(0);
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
+
+  const codeCache = {};
+  const codes = dups => codeCache[dups] || (codeCache[dups] = MM.allCodes(PEGS, NCOL, dups));
+  const validCode = c => Array.isArray(c) && c.length === PEGS && c.every(x => x === null || (Number.isInteger(x) && x >= 0 && x < NCOL));
+
+  let state, msg = null, fx = {}, runToken = 0, log = [];
+
+  function persist() {
+    if (state.mode !== 'break') return;
+    store.game = state.phase === 'play'
+      ? { dups: state.dups, secret: state.secret, guesses: state.guesses, cur: state.cur, hinted: state.hinted }
+      : null;
+    save();
+  }
+  function newBreakGame() {
+    const dups = !!store.opts.dups, all = codes(dups);
+    state = { mode: 'break', dups, secret: all[Math.floor(Math.random() * all.length)].slice(),
+              guesses: [], cur: empty(), cursor: 0, phase: 'play', hinted: false };
+    log = []; persist();
+  }
+  function restoreBreakGame() {
+    const g = store.game;
+    if (g && validCode(g.secret) && !g.secret.includes(null) && Array.isArray(g.guesses) && g.guesses.length < ROWS &&
+        g.guesses.every(h => h && validCode(h.g) && Array.isArray(h.fb))) {
+      state = { mode: 'break', dups: !!g.dups, secret: g.secret, guesses: g.guesses,
+                cur: validCode(g.cur) ? g.cur : empty(), cursor: 0, phase: 'play', hinted: !!g.hinted };
+      const e = state.cur.indexOf(null); state.cursor = e;
+      log = [];
+      return true;
+    }
+    return false;
+  }
+  function newSetGame() {
+    state = { mode: 'set', dups: !!store.opts.dups, secret: null, guesses: [], cur: empty(), cursor: 0, phase: 'pick' };
+    log = [];
+  }
+  const editable = () => (state.mode === 'break' && state.phase === 'play') || (state.mode === 'set' && state.phase === 'pick');
+  const computerRunning = () => state.phase === 'run' || state.phase === 'solving';
+
+  // ---------- build DOM ----------
+  const coderow = $('coderow'), rowsEl = $('rows'), codeHoles = [], rowEls = [];
+  function makeHole(where, i) {
+    const b = document.createElement('button');
+    b.className = 'hole'; b.type = 'button'; b.dataset.where = where; b.dataset.i = i;
+    b.addEventListener('click', () => tapHole(where, i));
+    return b;
+  }
+  for (let i = 0; i < PEGS; i++) { const h = makeHole('code', i); codeHoles.push(h); coderow.insertBefore(h, $('shield')); }
+  coderow.insertBefore(document.createElement('div'), $('shield'));
+  for (let r = 0; r < ROWS; r++) {
+    const row = document.createElement('div'); row.className = 'row grid6';
+    const num = document.createElement('div'); num.className = 'num'; num.textContent = r + 1; row.appendChild(num);
+    const holes = [];
+    for (let i = 0; i < PEGS; i++) { const h = makeHole(r, i); holes.push(h); row.appendChild(h); }
+    const keys = document.createElement('div'); keys.className = 'keys';
+    const ks = [];
+    for (let i = 0; i < PEGS; i++) { const k = document.createElement('i'); k.className = 'k'; ks.push(k); keys.appendChild(k); }
+    row.appendChild(keys); rowsEl.appendChild(row);
+    rowEls.push({ row, holes, ks });
+  }
+  const palette = $('palette'), swatches = [];
+  COLORS.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'swatch'; b.type = 'button';
+    b.style.setProperty('--c', c.v); b.style.setProperty('--t', c.t);
+    b.dataset.s = c.s; b.setAttribute('aria-label', c.n); b.title = `${c.n} (${i + 1})`;
+    b.addEventListener('click', () => { place(i); b.blur(); });
+    palette.appendChild(b); swatches.push(b);
+  });
+
+  // ---------- actions ----------
+  function say(text, warn) { msg = { text, warn: !!warn }; }
+  function nextEmpty(from) {
+    for (let k = 1; k <= PEGS; k++) { const j = (from + k) % PEGS; if (state.cur[j] === null) return j; }
+    return -1;
+  }
+  function place(c) {
+    if (!editable()) return;
+    msg = null;
+    if (state.cursor < 0) { say('Row is full. Tap a peg to change it, or check your guess.'); render(); return; }
+    if (!state.dups && state.cur.some((x, i) => x === c && i !== state.cursor)) {
+      say(`No repeats this game, and ${COLORS[c].n.toLowerCase()} is already used.`, true); render(); return;
+    }
+    state.cur[state.cursor] = c;
+    fx.pop = state.cursor;
+    state.cursor = nextEmpty(state.cursor);
+    persist(); render();
+  }
+  function tapHole(where, i) {
+    if (!editable()) return;
+    if (state.mode === 'break' && where !== state.guesses.length) return;
+    if (state.mode === 'set' && where !== 'code') return;
+    msg = null;
+    if (state.cursor === i && state.cur[i] !== null) state.cur[i] = null;
+    else state.cursor = i;
+    persist(); render();
+  }
+  function back() {
+    if (!editable()) return;
+    msg = null;
+    let i = state.cursor >= 0 && state.cur[state.cursor] !== null ? state.cursor : -1;
+    if (i < 0) for (let j = PEGS - 1; j >= 0; j--) if (state.cur[j] !== null) { i = j; break; }
+    if (i < 0) return;
+    state.cur[i] = null; state.cursor = i;
+    persist(); render();
+  }
+  function moveCursor(d) {
+    if (!editable()) return;
+    state.cursor = ((state.cursor < 0 ? (d > 0 ? -1 : PEGS) : state.cursor) + d + PEGS) % PEGS;
+    render();
+  }
+  function shake(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+
+  function go() {
+    msg = null;
+    if (state.mode === 'break') {
+      if (state.phase !== 'play') return;
+      if (state.cur.includes(null)) { shake(rowEls[state.guesses.length].row); say('Fill all four holes first.', true); render(); return; }
+      submitGuess(state.cur.slice());
+      render();
+    } else if (state.phase === 'pick') {
+      if (state.cur.includes(null)) { shake(coderow); say('Pick all four pegs of your secret code.', true); render(); return; }
+      state.secret = state.cur.slice(); state.cur = empty(); state.cursor = -1;
+      state.phase = 'run';
+      runComputer();
+    }
+  }
+  function submitGuess(g) {
+    const fb = MM.score(g, state.secret);
+    state.guesses.push({ g, fb });
+    fx.scored = state.guesses.length - 1;
+    state.cur = empty(); state.cursor = 0;
+    if (fb[0] === PEGS) finish(true);
+    else if (state.guesses.length >= ROWS) finish(false);
+    persist();
+    return fb;
+  }
+  function finish(won) {
+    if (state.mode === 'break') {
+      if (state.phase === 'play') {
+        const s = store.stats; s.played++;
+        if (won) { s.won++; s.streak++; s.best = Math.max(s.best, s.streak); s.dist[state.guesses.length - 1]++; }
+        else s.streak = 0;
+        state.phase = won ? 'won' : 'lost';
+      } else state.phase = 'gaveup';
+    } else state.phase = 'done';
+    state.cursor = -1;
+    fx.won = won;
+    store.game = null; save();
+  }
+  function hint() {
+    if (state.mode !== 'break' || state.phase !== 'play') return;
+    const all = codes(state.dups);
+    const S = MM.consistent(all, state.guesses);
+    const g = MM.nextGuess(all, state.guesses, PEGS, NCOL, state.dups);
+    const fits = S.some(c => c.join('') === g.join(''));
+    state.cur = g; state.cursor = -1; state.hinted = true; fx.popAll = true;
+    if (S.length === 1) say('Only one code fits your clues, and this is it.');
+    else say(`${S.length} codes fit your clues. ${fits ? 'This guess could be the answer and narrows them down fastest.' : 'This guess can’t be the answer, but it rules out the most.'}`);
+    persist(); render();
+  }
+  function giveUp() {
+    if (state.mode !== 'break' || state.phase !== 'play') return;
+    if (!confirm('Give up and let the computer finish? This counts as a loss.')) return;
+    const s = store.stats; s.played++; s.streak = 0;
+    store.game = null; save();
+    state.phase = 'solving'; state.cur = empty(); state.cursor = -1; msg = null;
+    log = [];
+    runComputer();
+  }
+  function runComputer() {
+    const token = ++runToken;
+    const all = codes(state.dups);
+    const live = () => token === runToken && computerRunning();
+    const step = () => {
+      if (!live()) return;
+      if (state.guesses.length >= ROWS) { finish(false); render(); return; }
+      const before = MM.consistent(all, state.guesses).length;
+      const g = MM.nextGuess(all, state.guesses, PEGS, NCOL, state.dups);
+      state.cur = g.slice(); fx.popAll = true;
+      msg = { text: `Computer's guess ${state.guesses.length + 1}: ${before} ${before === 1 ? 'code fits' : 'codes fit'} so far…` };
+      render();
+      setTimeout(() => {
+        if (!live()) return;
+        const fb = submitGuess(g);
+        const after = MM.consistent(all, state.guesses).length;
+        log.push({ g, fb, before, after });
+        msg = null;
+        render();
+        if (computerRunning()) setTimeout(step, 650);
+      }, 700);
+    };
+    msg = { text: state.mode === 'set' ? 'Code locked in. The computer is thinking…' : 'The computer is taking over…' };
+    render();
+    setTimeout(step, 500);
+  }
+  function newGame() {
+    if (state.mode === 'break') {
+      if (state.phase === 'play' && state.guesses.length > 0) {
+        if (!confirm('Abandon this game? It counts as a loss.')) return;
+        const s = store.stats; s.played++; s.streak = 0;
+      }
+      runToken++; msg = null; newBreakGame();
+    } else { runToken++; msg = null; newSetGame(); }
+    render();
+  }
+  function randomCode() {
+    if (state.mode !== 'set' || state.phase !== 'pick') return;
+    const all = codes(state.dups);
+    state.cur = all[Math.floor(Math.random() * all.length)].slice(); state.cursor = -1; fx.popAll = true; msg = null;
+    render();
+  }
+  function setMode(m) {
+    if (state.mode === m) return;
+    runToken++; msg = null;
+    if (m === 'break') { if (!restoreBreakGame()) newBreakGame(); }
+    else { persist(); newSetGame(); }
+    render();
+  }
+
+  // ---------- render ----------
+  function pegHtml(v, cls, delay) {
+    const c = COLORS[v];
+    return `<span class="peg ${cls || ''}" style="--c:${c.v};--t:${c.t};${delay ? `animation-delay:${delay}ms` : ''}" data-s="${c.s}"></span>`;
+  }
+  function fill(h, v, o) {
+    h.classList.toggle('cursor', !!o.cursor);
+    h.tabIndex = o.tab ? 0 : -1;
+    if (v === null || v === undefined) { h.innerHTML = ''; h.setAttribute('aria-label', 'Empty hole'); return; }
+    h.innerHTML = pegHtml(v, o.cls, o.delay);
+    h.setAttribute('aria-label', COLORS[v].n);
+  }
+  function fbDots(fb) {
+    let s = '';
+    for (let i = 0; i < fb[0]; i++) s += '<i style="background:var(--key-exact)"></i>';
+    for (let i = 0; i < fb[1]; i++) s += '<i style="background:var(--key-color)"></i>';
+    return s || '<span style="color:var(--muted)">none</span>';
+  }
+  function statusText() {
+    if (msg) return msg;
+    const n = state.guesses.length;
+    if (state.mode === 'break') {
+      if (state.phase === 'play') {
+        if (n === 0) return { text: 'Guess 1 of 10. Tap colors to fill the glowing row.' };
+        return { text: `Guess ${n + 1} of 10${n === ROWS - 1 ? ', your last one' : ''}.` };
+      }
+      if (state.phase === 'won') return { html: `<span class="big">Cracked it in ${n} ${n === 1 ? 'guess' : 'guesses'}!</span>${state.hinted ? '&nbsp;(with hints)' : ''}` };
+      if (state.phase === 'lost') return { html: '<span class="big">Out of guesses.</span>&nbsp;Here’s the code.' };
+      if (state.phase === 'gaveup') return { text: `The computer finished in ${n} total guesses. Counted as a loss.` };
+      return { text: '' };
+    }
+    if (state.phase === 'pick') return { text: 'Pick your secret code above (or tap Random), then Start.' };
+    if (state.phase === 'done') return { html: `<span class="big">The computer cracked your code in ${n} ${n === 1 ? 'guess' : 'guesses'}.</span>` };
+    return { text: '' };
+  }
+  function render() {
+    document.body.classList.toggle('syms', !!store.opts.syms);
+    $('tabBreak').setAttribute('aria-pressed', state.mode === 'break');
+    $('tabSet').setAttribute('aria-pressed', state.mode === 'set');
+    const ed = editable();
+
+    // code row
+    const revealed = state.mode === 'set' || ['won', 'lost', 'gaveup'].includes(state.phase);
+    const picking = state.mode === 'set' && state.phase === 'pick';
+    coderow.classList.toggle('open', revealed);
+    coderow.classList.toggle('editing', picking);
+    $('codeLabel').textContent = state.mode === 'set' ? 'YOU' : '';
+    const codeVals = picking ? state.cur : (revealed ? state.secret : empty());
+    codeHoles.forEach((h, i) => fill(h, codeVals ? codeVals[i] : null, {
+      cursor: picking && i === state.cursor, tab: picking,
+      cls: picking && (fx.pop === i || fx.popAll) ? 'pop' : (fx.won && revealed ? 'win' : ''),
+      delay: fx.won && revealed ? 500 + i * 90 : (fx.popAll && picking ? i * 50 : 0),
+    }));
+
+    // guess rows
+    const activeRow = (state.mode === 'break' && (state.phase === 'play' || state.phase === 'solving')) ||
+                      (state.mode === 'set' && state.phase === 'run') ? state.guesses.length : -1;
+    rowEls.forEach((re, r) => {
+      const h = state.guesses[r];
+      re.row.classList.toggle('active', r === activeRow);
+      const vals = h ? h.g : (r === activeRow ? state.cur : empty());
+      re.holes.forEach((hole, i) => fill(hole, vals[i], {
+        cursor: r === activeRow && ed && i === state.cursor, tab: r === activeRow && ed,
+        cls: r === activeRow && (fx.pop === i || fx.popAll) ? 'pop' : '',
+        delay: r === activeRow && fx.popAll ? i * 60 : 0,
+      }));
+      const marks = h ? [...Array(h.fb[0]).fill('exact'), ...Array(h.fb[1]).fill('color')] : [];
+      re.ks.forEach((k, i) => {
+        k.className = 'k' + (marks[i] ? ' ' + marks[i] : '') + (marks[i] && fx.scored === r ? ' reveal' : '');
+        k.style.animationDelay = marks[i] && fx.scored === r ? `${i * 110}ms` : '';
+      });
+    });
+
+    // palette
+    palette.classList.toggle('off', !ed);
+    swatches.forEach((b, c) => {
+      b.disabled = ed && !state.dups && state.cur.some((x, i) => x === c && i !== state.cursor);
+    });
+
+    // buttons
+    const isBreak = state.mode === 'break';
+    $('btnBack').disabled = !ed || state.cur.every(x => x === null);
+    $('btnHint').textContent = isBreak ? 'Hint' : 'Random';
+    $('btnHint').disabled = isBreak ? state.phase !== 'play' : state.phase !== 'pick';
+    $('btnGo').textContent = isBreak ? 'Check ✓' : 'Start ▶';
+    $('btnGo').disabled = !ed;
+    $('btnSolve').hidden = !isBreak;
+    $('btnSolve').disabled = state.phase !== 'play';
+    const over = ['won', 'lost', 'gaveup', 'done'].includes(state.phase);
+    $('btnNew').classList.toggle('primary', over);
+
+    // status
+    const st = statusText(), el = $('status');
+    if (st.html) el.innerHTML = st.html; else el.textContent = st.text;
+    el.classList.toggle('warn', !!st.warn);
+
+    // log
+    $('logCard').hidden = !log.length;
+    $('log').innerHTML = log.map((e, i) =>
+      `<li><b>${i + 1}</b><span class="lp">${e.g.map(v => `<i style="--c:${COLORS[v].v}"></i>`).join('')}</span>` +
+      `<span class="fb">${fbDots(e.fb)}</span><span class="muted">${e.fb[0] === PEGS ? 'solved' : `${e.before} → ${e.after} left`}</span></li>`
+    ).join('');
+
+    fx = {};
+  }
+
+  // ---------- stats dialog ----------
+  function renderStats() {
+    const s = store.stats;
+    const pct = s.played ? Math.round(100 * s.won / s.played) : 0;
+    $('statgrid').innerHTML = [[s.played, 'Played'], [pct + '%', 'Won'], [s.streak, 'Streak'], [s.best, 'Best']]
+      .map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join('');
+    const max = Math.max(1, ...s.dist);
+    const lastWin = state.mode === 'break' && state.phase === 'won' ? state.guesses.length - 1 : -1;
+    $('dist').innerHTML = s.dist.map((n, i) =>
+      `<div><span>${i + 1}</span><span class="bar${i === lastWin ? ' hot' : ''}" style="--w:${Math.max(8, 100 * n / max)}%">${n}</span></div>`).join('');
+    $('optDups').checked = !!store.opts.dups;
+    $('optSyms').checked = !!store.opts.syms;
+  }
+  $('btnStats').addEventListener('click', () => { renderStats(); $('dlg').showModal(); });
+  $('optDups').addEventListener('change', e => {
+    store.opts.dups = e.target.checked; save();
+    if (state.mode === 'break' && state.phase === 'play' && state.guesses.length === 0) { newBreakGame(); msg = null; }
+    else if (state.mode === 'set' && state.phase === 'pick') newSetGame();
+    else say('The repeat setting takes effect on your next game.');
+    render();
+  });
+  $('optSyms').addEventListener('change', e => { store.opts.syms = e.target.checked; save(); render(); });
+  $('btnReset').addEventListener('click', () => {
+    if (!confirm('Reset all Mastermind stats?')) return;
+    store.stats = freshStats(); save(); renderStats();
+  });
+
+  // ---------- wiring ----------
+  $('btnBack').addEventListener('click', back);
+  $('btnHint').addEventListener('click', () => state.mode === 'break' ? hint() : randomCode());
+  $('btnGo').addEventListener('click', go);
+  $('btnNew').addEventListener('click', newGame);
+  $('btnSolve').addEventListener('click', giveUp);
+  $('tabBreak').addEventListener('click', () => setMode('break'));
+  $('tabSet').addEventListener('click', () => setMode('set'));
+  document.addEventListener('keydown', e => {
+    if ($('dlg').open || e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key;
+    if (k === 'Enter' && e.target.tagName === 'BUTTON' && !e.target.classList.contains('hole')) return;
+    if (k >= '1' && k <= String(NCOL)) place(+k - 1);
+    else if (k === 'Backspace' || k === 'Delete') back();
+    else if (k === 'Enter') go();
+    else if (k === 'ArrowLeft') moveCursor(-1);
+    else if (k === 'ArrowRight') moveCursor(1);
+    else if (k === 'h' || k === 'H') { if (state.mode === 'break') hint(); }
+    else return;
+    e.preventDefault();
+  });
+  if (window.matchMedia('(min-width: 860px)').matches) $('rules').open = true;
+
+  if (!restoreBreakGame()) newBreakGame();
+  render();
+  window.__mm = { get state() { return state; }, store };
+})();
+</script>
+</body>
+</html>
