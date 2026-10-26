@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Minesweeper">
+<title>Minesweeper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=VT323&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root{
+  --bg:#e4e2dc; --fg:#1f1f1f; --muted:#6b6862; --accent:#0a5bd6;
+  --panel:#c0c0c0; --hi:#ffffff; --lo:#7b7b7b; --cell:#c0c0c0; --open:#c9c9c9; --grid:#8a8a8a;
+  --ico:#111; --led-bg:#100; --led:#ff2a1a; --boom:#ff2a1a; --hint:#0a5bd6;
+  --n1:#0000ff; --n2:#007b00; --n3:#e00000; --n4:#00007b; --n5:#7b0000; --n6:#007b7b; --n7:#000; --n8:#7b7b7b;
+  --btn:#f5f4f0; --btn-fg:#1f1f1f;
+  --pixel:"Silkscreen","Courier New",monospace;
+  --led-font:"VT323","Courier New",monospace;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#111316; --fg:#e8e6e1; --muted:#9b978f; --accent:#5b9bff;
+  --panel:#2c3036; --hi:#4b525b; --lo:#15171a; --cell:#383d44; --open:#22252a; --grid:#181a1d;
+  --ico:#e4e4e4; --led-bg:#0a0000; --led:#ff3b2b; --boom:#c8231a; --hint:#6aa6ff;
+  --n1:#79a8ff; --n2:#5fd07c; --n3:#ff6b6b; --n4:#b493ff; --n5:#ff9d5c; --n6:#4fd1c5; --n7:#f0f0f0; --n8:#a0a4a8;
+  --btn:#2a2e33; --btn-fg:#e8e6e1;
+  color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 var(--body);
+  padding:max(14px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit}
+main{max-width:1000px;margin:0 auto;padding-bottom:20px}
+.backlink{display:inline-block;margin:0 0 4px;font-size:14px;font-weight:700;color:var(--muted);text-decoration:none}
+.backlink:hover{color:var(--accent)}
+h1{font-family:var(--pixel);font-weight:700;font-size:clamp(1.6rem,7vw,2.3rem);line-height:1.1;margin:0 0 10px;letter-spacing:.02em}
+.opts{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:12px}
+.seg{display:inline-flex;border:1px solid var(--lo);border-radius:10px;overflow:hidden;background:var(--btn)}
+.seg button{border:0;background:transparent;padding:8px 12px;min-height:42px;font-weight:700;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.check{display:inline-flex;align-items:center;gap:8px;font-size:15px;cursor:pointer;min-height:42px}
+.check input{width:20px;height:20px;accent-color:var(--accent)}
+
+/* classic beveled game window */
+.game{background:var(--panel);padding:10px;border-radius:2px;
+  box-shadow:inset 3px 3px 0 var(--hi),inset -3px -3px 0 var(--lo);margin:0 auto;width:max-content;max-width:100%}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 8px;margin-bottom:10px;
+  box-shadow:inset 2px 2px 0 var(--lo),inset -2px -2px 0 var(--hi)}
+.led{background:var(--led-bg);color:var(--led);font:400 34px/1 var(--led-font);padding:2px 6px 0;min-width:62px;text-align:right;letter-spacing:.06em;
+  text-shadow:0 0 6px color-mix(in srgb,var(--led) 55%,transparent);box-shadow:inset 1px 1px 0 var(--lo),inset -1px -1px 0 var(--hi)}
+.face{width:46px;height:46px;border:0;background:var(--panel);font-size:26px;line-height:1;cursor:pointer;display:grid;place-items:center;
+  box-shadow:inset 3px 3px 0 var(--hi),inset -3px -3px 0 var(--lo),0 0 0 1px var(--lo)}
+.face:active{box-shadow:inset 2px 2px 0 var(--lo),0 0 0 1px var(--lo)}
+.wrap{overflow:auto;max-width:100%;box-shadow:inset 3px 3px 0 var(--lo),inset -3px -3px 0 var(--hi);padding:3px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#board{display:grid;grid-template-columns:repeat(var(--cols),var(--cs));grid-auto-rows:var(--cs);width:max-content;
+  touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.c{width:var(--cs);height:var(--cs);background:var(--cell);display:grid;place-items:center;position:relative;cursor:pointer;
+  --b:max(2px,calc(var(--cs) * .11));box-shadow:inset var(--b) var(--b) 0 var(--hi),inset calc(-1 * var(--b)) calc(-1 * var(--b)) 0 var(--lo);
+  font:700 calc(var(--cs) * .56)/1 var(--pixel)}
+.c svg{width:68%;height:68%;display:block}
+.c.o,.c.pressed{background:var(--open);box-shadow:inset -1px -1px 0 var(--grid);cursor:default}
+.c.o.num{cursor:pointer}
+.c.boom{background:var(--boom)}
+.c.boom svg{--ico:#111}
+.c.hint{outline:3px solid var(--hint);outline-offset:-2px;z-index:1;background:color-mix(in srgb,var(--hint) 38%,var(--cell));animation:pulse 1.1s ease-in-out infinite}
+.c.o.hint{background:color-mix(in srgb,var(--hint) 30%,var(--open))}
+@keyframes pulse{50%{background:color-mix(in srgb,var(--hint) 12%,var(--cell))}}
+.n1{color:var(--n1)}.n2{color:var(--n2)}.n3{color:var(--n3)}.n4{color:var(--n4)}.n5{color:var(--n5)}.n6{color:var(--n6)}.n7{color:var(--n7)}.n8{color:var(--n8)}
+.x{position:absolute;inset:12%;pointer-events:none}
+
+.tools{position:sticky;bottom:0;z-index:5;margin:12px -16px 0;padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+  background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-top:1px solid color-mix(in srgb,var(--lo) 40%,transparent)}
+.tools-inner{max-width:560px;margin:0 auto;display:grid;grid-template-columns:auto 1fr 1fr auto;gap:8px;align-items:center}
+.mode{display:inline-flex;border-radius:12px;overflow:hidden;border:1px solid var(--lo)}
+.mode button{border:0;background:var(--btn);min-height:48px;min-width:54px;font-size:22px;cursor:pointer;opacity:.55}
+.mode button[aria-pressed="true"]{background:var(--fg);opacity:1}
+.tbtn{min-height:48px;border-radius:12px;border:1px solid var(--lo);background:var(--btn);color:var(--btn-fg);font-weight:700;cursor:pointer}
+.tbtn:disabled{opacity:.4;cursor:default}
+.zoom{display:inline-flex;gap:4px}
+.zoom button{width:40px;min-height:48px;border-radius:10px;border:1px solid var(--lo);background:var(--btn);font-weight:700;font-size:20px;cursor:pointer}
+.zoom button:disabled{opacity:.35}
+.msg{max-width:560px;margin:8px auto 0;text-align:center;min-height:2.7em;font-size:15px;line-height:1.3;color:var(--fg)}
+.msg b{color:var(--accent)}
+
+.below{max-width:640px;margin:18px auto 8px;display:grid;gap:10px}
+details{background:var(--btn);border:1px solid color-mix(in srgb,var(--lo) 60%,transparent);border-radius:10px;padding:0 14px}
+summary{cursor:pointer;padding:12px 0;font-weight:700;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸ ";color:var(--accent)}
+details[open] summary::before{content:"▾ "}
+details ul{margin:0 0 14px;padding-left:20px}
+details li{margin:4px 0}
+table.stats{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:10px}
+table.stats th,table.stats td{padding:6px 4px;text-align:right;border-bottom:1px solid color-mix(in srgb,var(--lo) 35%,transparent)}
+table.stats th:first-child,table.stats td:first-child{text-align:left}
+table.stats th{color:var(--muted);font-weight:700}
+.linkbtn{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0 0 14px;font-size:14px}
+@media (min-width:760px){ .tools{position:static;margin:12px 0 0;background:none;backdrop-filter:none;border:0;padding:0} }
+@media (max-width:520px){ .game{padding:6px} .bar{margin-bottom:6px;padding:5px 6px} .wrap{padding:2px} }
+@media (max-width:380px){ .seg button{padding:8px 9px;font-size:15px} .mode button{min-width:48px} .zoom button{width:36px} }
+@media (prefers-reduced-motion:reduce){ .c.hint{animation:none} }
+</style>
+</head>
+<body>
+<main>
+  <a class="backlink" href="../">← All games</a>
+  <h1>Minesweeper</h1>
+  <div class="opts">
+    <div class="seg" role="group" aria-label="Difficulty" id="levels">
+      <button type="button" data-level="beginner">Beginner</button>
+      <button type="button" data-level="intermediate">Intermediate</button>
+      <button type="button" data-level="expert">Expert</button>
+    </div>
+    <label class="check"><input type="checkbox" id="noGuess"> No-guess boards</label>
+  </div>
+
+  <div class="game">
+    <div class="bar">
+      <div class="led" id="mines" aria-label="Mines left">010</div>
+      <button type="button" class="face" id="face" aria-label="New game">🙂</button>
+      <div class="led" id="time" aria-label="Seconds">000</div>
+    </div>
+    <div class="wrap" id="wrap"><div id="board" aria-label="Minefield"></div></div>
+  </div>
+
+  <div class="tools">
+    <div class="tools-inner">
+      <div class="mode" role="group" aria-label="Tap action">
+        <button type="button" data-mode="dig" aria-pressed="true" aria-label="Tap opens squares">⛏️</button>
+        <button type="button" data-mode="flag" aria-pressed="false" aria-label="Tap places flags">🚩</button>
+      </div>
+      <button type="button" class="tbtn" id="hintBtn">Hint</button>
+      <button type="button" class="tbtn" id="undoBtn">Undo</button>
+      <div class="zoom"><button type="button" id="zoomOut" aria-label="Smaller squares">−</button><button type="button" id="zoomIn" aria-label="Bigger squares">+</button></div>
+    </div>
+    <div class="msg" id="msg" aria-live="polite"></div>
+  </div>
+
+  <div class="below">
+    <details id="statsBox">
+      <summary>Stats</summary>
+      <div id="stats"></div>
+      <button type="button" class="linkbtn" id="resetStats">Reset stats</button>
+    </details>
+    <details>
+      <summary>How to play</summary>
+      <ul>
+        <li>Open every square that isn't a mine. A number tells you how many of the eight squares around it hold mines.</li>
+        <li>Your first tap is always safe and opens an area.</li>
+        <li><b>Flag</b> a mine with a long-press or right-click, or switch the ⛏️/🚩 toggle to flag mode, where a tap flags and a long-press opens.</li>
+        <li><b>Chord:</b> tap a number whose flags are all placed to open the rest of its neighbors. If one of those flags is wrong, you'll set off a mine.</li>
+        <li>Beginner is 9×9 with 10 mines, Intermediate 16×16 with 40, Expert 30×16 with 99 (shown tall on phones).</li>
+        <li><b>No-guess boards</b> are built so pure logic can clear them. Classic boards sometimes end in a true coin flip.</li>
+        <li><b>Hint</b> finds a square that's certainly safe, or points out a wrong flag. When nothing is certain, it shows the least risky square and its odds. Tap Hint again to make that move.</li>
+        <li><b>Undo</b> takes back your last move, even a mine. Games with a hint or undo still count as wins, but not toward best times.</li>
+        <li>Tap the face to start over.</li>
+      </ul>
+    </details>
+  </div>
+</main>
+
+<script>
+/*CORE-START*/
+const LEVELS = {
+  beginner: { name: 'Beginner', rows: 9, cols: 9, mines: 10 },
+  intermediate: { name: 'Intermediate', rows: 16, cols: 16, mines: 40 },
+  expert: { name: 'Expert', rows: 16, cols: 30, mines: 99 }
+};
+
+function makeBoard(rows, cols, mines) {
+  const N = rows * cols, nb = [];
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const l = [];
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      if (!dr && !dc) continue;
+      const rr = r + dr, cc = c + dc;
+      if (rr >= 0 && rr < rows && cc >= 0 && cc < cols) l.push(rr * cols + cc);
+    }
+    nb.push(l);
+  }
+  return { rows, cols, mines, N, nb, mine: null, num: null, open: new Array(N).fill(0), flag: new Array(N).fill(0) };
+}
+
+function placeMines(B, first, rng) {
+  rng = rng || Math.random;
+  const banned = new Set([first]);
+  if (B.N - 1 - B.nb[first].length >= B.mines) B.nb[first].forEach(j => banned.add(j)); // first tap opens an area
+  const pool = [];
+  for (let i = 0; i < B.N; i++) if (!banned.has(i)) pool.push(i);
+  for (let k = pool.length - 1; k > 0; k--) { const j = Math.floor(rng() * (k + 1)); [pool[k], pool[j]] = [pool[j], pool[k]]; }
+  B.mine = new Array(B.N).fill(0);
+  for (let k = 0; k < B.mines; k++) B.mine[pool[k]] = 1;
+  computeNums(B);
+}
+
+function computeNums(B) {
+  B.num = B.mine.map((m, i) => B.nb[i].reduce((s, j) => s + B.mine[j], 0));
+}
+
+// Open a cell (with flood fill from zeros). Returns { opened: [...], hit: bool }.
+function reveal(B, i) {
+  if (B.open[i] || B.flag[i]) return { opened: [], hit: false };
+  if (B.mine[i]) { B.open[i] = 1; return { opened: [i], hit: true }; }
+  const opened = [], stack = [i];
+  B.open[i] = 1;
+  while (stack.length) {
+    const x = stack.pop(); opened.push(x);
+    if (B.num[x] === 0) for (const j of B.nb[x]) if (!B.open[j] && !B.flag[j] && !B.mine[j]) { B.open[j] = 1; stack.push(j); }
+  }
+  return { opened, hit: false };
+}
+
+// Chord on an opened number whose flag count matches: open all other neighbors.
+function chordTargets(B, i) {
+  if (!B.open[i] || B.num[i] === 0) return [];
+  const flags = B.nb[i].filter(j => B.flag[j]).length;
+  if (flags !== B.num[i]) return [];
+  return B.nb[i].filter(j => !B.open[j] && !B.flag[j]);
+}
+
+function isWon(B) {
+  let n = 0; for (let i = 0; i < B.N; i++) if (B.open[i] && !B.mine[i]) n++;
+  return n === B.N - B.mines;
+}
+
+/* ---------------- Solver: uses only what the player can see ---------------- */
+let LOGF = [0];
+function logC(n, k) {
+  if (k < 0 || k > n) return -Infinity;
+  while (LOGF.length <= n) LOGF.push(LOGF[LOGF.length - 1] + Math.log(LOGF.length));
+  return LOGF[n] - LOGF[k] - LOGF[n - k];
+}
+
+// Returns { safe:[], mine:[], prob: Float64Array|null, exact }
+// state: 0 unknown, 1 known safe, 2 known mine (for unopened cells)
+function analyze(B, wantProb, nodeCap) {
+  nodeCap = nodeCap || 150000;
+  const N = B.N, st = new Int8Array(N);
+  let lastProb = null, exact = false;
+  for (let guard = 0; guard < 500; guard++) {
+    // constraints from opened numbers
+    const cons = [];
+    for (let i = 0; i < N; i++) {
+      if (!B.open[i]) continue;
+      const unk = []; let need = B.num[i];
+      for (const j of B.nb[i]) if (!B.open[j]) { if (st[j] === 2) need--; else if (st[j] === 0) unk.push(j); }
+      if (unk.length) cons.push({ v: unk, n: need });
+    }
+    let changed = false;
+    const mark = (cells, s) => { for (const j of cells) if (st[j] === 0) { st[j] = s; changed = true; } };
+    for (const c of cons) { if (c.n === 0) mark(c.v, 1); else if (c.n === c.v.length) mark(c.v, 2); }
+    if (changed) continue;
+    // pair rule: for overlapping A,B, if n(B)-n(A) = |B\A| then B\A are mines and A\B are safe
+    const byCell = new Map();
+    cons.forEach((c, k) => c.v.forEach(j => { let a = byCell.get(j); if (!a) byCell.set(j, a = []); a.push(k); }));
+    const inA = new Int32Array(N).fill(-1);
+    for (let a = 0; a < cons.length && !changed; a++) {
+      const A = cons[a]; A.v.forEach(j => inA[j] = a);
+      const seen = new Set();
+      for (const j of A.v) for (const b of byCell.get(j)) {
+        if (b === a || seen.has(b)) continue; seen.add(b);
+        const Bc = cons[b], onlyB = Bc.v.filter(x => inA[x] !== a);
+        if (Bc.n - A.n === onlyB.length) {
+          const inB = new Set(Bc.v);
+          const onlyA = A.v.filter(x => !inB.has(x));
+          mark(onlyB, 2); mark(onlyA, 1);
+        }
+      }
+    }
+    if (changed) continue;
+    // exhaustive enumeration of each frontier component
+    const res = enumerate(B, st, cons, wantProb, nodeCap);
+    lastProb = res.prob; exact = res.exact;
+    mark(res.safe, 1); mark(res.mine, 2);
+    if (!changed) break;
+  }
+  const safe = [], mine = [];
+  for (let i = 0; i < N; i++) if (!B.open[i]) { if (st[i] === 1) safe.push(i); else if (st[i] === 2) mine.push(i); }
+  let prob = null;
+  if (wantProb) {
+    prob = lastProb || new Float64Array(N).fill(0.5);
+    for (const i of safe) prob[i] = 0; for (const i of mine) prob[i] = 1;
+  }
+  return { safe, mine, prob, exact };
+}
+
+function enumerate(B, st, cons, wantProb, nodeCap) {
+  const N = B.N;
+  // components over constraint variables
+  const parent = new Map();
+  const find = x => { while (parent.get(x) !== x) { parent.set(x, parent.get(parent.get(x))); x = parent.get(x); } return x; };
+  for (const c of cons) for (const v of c.v) if (!parent.has(v)) parent.set(v, v);
+  for (const c of cons) for (let k = 1; k < c.v.length; k++) { const a = find(c.v[0]), b = find(c.v[k]); if (a !== b) parent.set(a, b); }
+  const comps = new Map();
+  for (const v of parent.keys()) { const r = find(v); if (!comps.has(r)) comps.set(r, { vars: [], cons: [] }); comps.get(r).vars.push(v); }
+  for (const c of cons) comps.get(find(c.v[0])).cons.push(c);
+
+  let knownMines = 0, rest = 0;
+  for (let i = 0; i < N; i++) if (!B.open[i]) { if (st[i] === 2) knownMines++; else if (st[i] === 0 && !parent.has(i)) rest++; }
+  const R = B.mines - knownMines;
+
+  const safe = [], mine = [], list = [];
+  let allOk = true;
+  for (const comp of comps.values()) {
+    const r = solveComp(comp, nodeCap);
+    if (r.failed) { allOk = false; comp.failed = true; continue; }
+    comp.byK = r.byK; comp.cellByK = r.cellByK; comp.order = r.order;
+    const S = r.byK.reduce((s, x) => s + x, 0);
+    comp.order.forEach((v, idx) => {
+      let m = 0; r.cellByK.forEach(arr => { if (arr) m += arr[idx]; });
+      if (m === 0) safe.push(v); else if (m === S) mine.push(v);
+    });
+    list.push(comp);
+  }
+  if (safe.length || mine.length) return { safe, mine, prob: null, exact: false };
+  if (!allOk) {
+    if (!wantProb) return { safe, mine, prob: null, exact: false };
+    // rough probabilities when a component is too big to enumerate
+    const prob = new Float64Array(N).fill(0);
+    let expFrontier = 0;
+    for (const comp of comps.values()) {
+      if (comp.failed) {
+        for (const v of comp.vars) {
+          let p = 0, k = 0;
+          for (const c of comp.cons) if (c.v.includes(v)) { p += c.n / c.v.length; k++; }
+          prob[v] = k ? p / k : 0.5; expFrontier += prob[v];
+        }
+      } else {
+        const S = comp.byK.reduce((s, x) => s + x, 0);
+        comp.order.forEach((v, idx) => { let m = 0; comp.cellByK.forEach(a => { if (a) m += a[idx]; }); prob[v] = m / S; expFrontier += prob[v]; });
+      }
+    }
+    const pr = rest ? Math.min(1, Math.max(0, (R - expFrontier) / rest)) : 0;
+    for (let i = 0; i < N; i++) if (!B.open[i] && st[i] === 0 && !parent.has(i)) prob[i] = pr;
+    return { safe, mine, prob, exact: false };
+  }
+  // exact combination with the global mine count
+  const conv = (a, b) => { const o = new Array(a.length + b.length - 1).fill(0); a.forEach((x, i) => { if (x) b.forEach((y, j) => { o[i + j] += x * y; }); }); return o; };
+  let all = [1];
+  for (const c of list) all = conv(all, c.byK);
+  let M = -Infinity;
+  for (let k = 0; k < all.length; k++) if (all[k]) M = Math.max(M, logC(rest, R - k));
+  if (M === -Infinity) return { safe, mine, prob: null, exact: false }; // inconsistent (shouldn't happen)
+  const w = k => (R - k < 0 || R - k > rest) ? 0 : Math.exp(logC(rest, R - k) - M);
+  let total = 0, restMines = 0;
+  for (let k = 0; k < all.length; k++) if (all[k]) { const x = all[k] * w(k); total += x; restMines += x * (R - k); }
+  const prob = new Float64Array(N);
+  list.forEach((c, ci) => {
+    let others = [1];
+    list.forEach((d, di) => { if (di !== ci) others = conv(others, d.byK); });
+    c.order.forEach((v, idx) => {
+      let num = 0;
+      c.cellByK.forEach((arr, kc) => {
+        if (!arr || !arr[idx]) return;
+        others.forEach((o, ko) => { if (o) num += arr[idx] * o * w(kc + ko); });
+      });
+      if (num === 0) safe.push(v); else if (total - num <= total * 1e-12) mine.push(v);
+      prob[v] = num / total;
+    });
+  });
+  const pRest = rest ? restMines / total / rest : 0;
+  for (let i = 0; i < N; i++) if (!B.open[i] && st[i] === 0 && !parent.has(i)) {
+    prob[i] = pRest;
+    if (restMines === 0) safe.push(i); else if (pRest >= 1 - 1e-12) mine.push(i);
+  }
+  return { safe, mine, prob: wantProb ? prob : null, exact: true };
+}
+
+function solveComp(comp, nodeCap) {
+  // order variables so constraints close early (BFS through shared constraints)
+  const vars = comp.vars, cons = comp.cons;
+  const varCons = new Map(vars.map(v => [v, []]));
+  cons.forEach((c, k) => c.v.forEach(v => varCons.get(v).push(k)));
+  const order = [], seen = new Set([vars[0]]), q = [vars[0]];
+  while (q.length) {
+    const v = q.shift(); order.push(v);
+    for (const k of varCons.get(v)) for (const u of cons[k].v) if (!seen.has(u)) { seen.add(u); q.push(u); }
+  }
+  const idxCons = order.map(v => varCons.get(v));
+  const am = new Int32Array(cons.length), un = new Int32Array(cons.length);
+  cons.forEach((c, k) => un[k] = c.v.length);
+  const val = new Int8Array(order.length);
+  const byK = new Array(order.length + 1).fill(0), cellByK = [];
+  let nodes = 0, failed = false;
+  const dfs = (i, m) => {
+    if (failed) return;
+    if (++nodes > nodeCap) { failed = true; return; }
+    if (i === order.length) {
+      byK[m]++;
+      let arr = cellByK[m]; if (!arr) arr = cellByK[m] = new Float64Array(order.length);
+      for (let t = 0; t < order.length; t++) if (val[t]) arr[t]++;
+      return;
+    }
+    const cs = idxCons[i];
+    for (let x = 0; x <= 1; x++) {
+      let ok = true;
+      for (const k of cs) { const nm = am[k] + x, nu = un[k] - 1; if (nm > cons[k].n || nm + nu < cons[k].n) { ok = false; break; } }
+      if (!ok) continue;
+      for (const k of cs) { am[k] += x; un[k]--; }
+      val[i] = x;
+      dfs(i + 1, m + x);
+      for (const k of cs) { am[k] -= x; un[k]++; }
+      val[i] = 0;
+    }
+  };
+  dfs(0, 0);
+  return { failed, byK, cellByK, order };
+}
+
+// Can the board be cleared from `first` by pure logic (no guesses)?
+function solvableNoGuess(B, first) {
+  const S = { rows: B.rows, cols: B.cols, mines: B.mines, N: B.N, nb: B.nb, mine: B.mine, num: B.num,
+    open: new Array(B.N).fill(0), flag: new Array(B.N).fill(0) };
+  reveal(S, first);
+  for (let it = 0; it < 2000; it++) {
+    if (isWon(S)) return true;
+    const a = analyze(S, false, 60000);
+    if (!a.safe.length) return false;
+    for (const i of a.safe) { if (S.mine[i]) throw new Error('solver error'); reveal(S, i); }
+  }
+  return false;
+}
+
+// Place mines after the first tap; with noGuess, retry until the board needs no guesses.
+function generate(B, first, noGuess, rng, budgetMs) {
+  const t0 = Date.now();
+  let tries = 0;
+  do {
+    tries++;
+    placeMines(B, first, rng);
+    if (!noGuess || solvableNoGuess(B, first)) return { ok: true, tries };
+  } while (Date.now() - t0 < (budgetMs || 4000));
+  return { ok: false, tries };
+}
+/*CORE-END*/
+
+/* ================= UI ================= */
+const KEY = 'minesweeper.v1';
+const $ = id => document.getElementById(id);
+const FLAG = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8.6 2v9.2" stroke="var(--ico)" stroke-width="1.7"/><path d="M8.6 1.6 2.8 4.5l5.8 2.9z" fill="#e01e1e"/><path d="M5.5 11h6.2v1.6H5.5zM3.8 12.6h9.6v1.8H3.8z" fill="var(--ico)"/></svg>';
+const MINE = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.2v13.6M1.2 8h13.6M3.2 3.2l9.6 9.6M12.8 3.2l-9.6 9.6" stroke="var(--ico)" stroke-width="1.5"/><circle cx="8" cy="8" r="4.7" fill="var(--ico)"/><circle cx="6.4" cy="6.4" r="1.3" fill="#fff" opacity=".9"/></svg>';
+const XMARK = '<svg class="x" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2l12 12M14 2 2 14" stroke="#e01e1e" stroke-width="2.4" stroke-linecap="round"/></svg>';
+const ZOOMS = [1, 1.25, 1.5, 1.8, 2.2];
+
+let saved = { stats: {}, settings: { level: 'beginner', noGuess: false, zoom: 0, mode: 'dig' }, game: null, backup: null };
+try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && typeof s === 'object') saved = Object.assign(saved, s); } } catch (e) {}
+if (!saved.stats || typeof saved.stats !== 'object') saved.stats = {};
+saved.settings = Object.assign({ level: 'beginner', noGuess: false, zoom: 0, mode: 'dig' }, saved.settings || {});
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {} };
+
+let G = null, B = null;
+let ui = { hint: null, msg: '', lastTick: 0, pressed: -1 };
+
+function statKey(g) { return g.level + (g.noGuess ? '-ng' : ''); }
+
+function newGame(level, noGuess) {
+  level = LEVELS[level] ? level : 'beginner';
+  const L = LEVELS[level];
+  let rows = L.rows, cols = L.cols;
+  if (cols > rows && $('wrap').parentElement.parentElement.clientWidth < cols * 24 + 40) { rows = L.cols; cols = L.rows; } // tall on phones
+  G = { level, noGuess: !!noGuess, rows, cols, mines: L.mines, mine: null, open: new Array(rows * cols).fill(0), flag: new Array(rows * cols).fill(0),
+    over: null, boom: -1, elapsed: 0, started: false, assisted: false, hist: [], recorded: false, ngOk: null };
+  ui.hint = null; ui.msg = G.noGuess ? 'No-guess board: logic alone can clear it. Tap any square to start.' : 'Tap any square to start. Your first tap is always safe.';
+  attach(); buildBoard(); save(); render();
+}
+
+function attach() { // build the solver board object around the saved arrays
+  B = makeBoard(G.rows, G.cols, G.mines);
+  B.open = G.open; B.flag = G.flag;
+  if (G.mine) { B.mine = G.mine; computeNums(B); }
+}
+
+function validGame(g) {
+  return g && LEVELS[g.level] && Array.isArray(g.open) && g.open.length === g.rows * g.cols && Array.isArray(g.flag) && g.flag.length === g.open.length &&
+    (g.mine === null || (Array.isArray(g.mine) && g.mine.length === g.open.length));
+}
+
+/* ----- board DOM ----- */
+let cellEls = [];
+function buildBoard() {
+  const board = $('board');
+  board.innerHTML = '';
+  cellEls = [];
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < G.rows * G.cols; i++) {
+    const d = document.createElement('div'); d.className = 'c'; d.dataset.i = i; frag.appendChild(d); cellEls.push(d);
+  }
+  board.appendChild(frag);
+  board.style.setProperty('--cols', G.cols);
+  sizeBoard();
+}
+
+function sizeBoard() {
+  const gs = getComputedStyle(document.querySelector('.game')), ws = getComputedStyle($('wrap'));
+  const avail = Math.min(document.querySelector('main').clientWidth, window.innerWidth - 32)
+    - 2 * parseFloat(gs.paddingLeft) - 2 * parseFloat(ws.paddingLeft);
+  const fit = Math.floor(avail / G.cols);
+  const base = Math.max(20, Math.min(40, fit));
+  const z = ZOOMS[saved.settings.zoom] || 1;
+  const cs = Math.round(base * z);
+  $('board').style.setProperty('--cs', cs + 'px');
+  $('zoomOut').disabled = saved.settings.zoom <= 0;
+  $('zoomIn').disabled = saved.settings.zoom >= ZOOMS.length - 1;
+}
+
+function paintCell(i) {
+  const el = cellEls[i];
+  let cls = 'c', html = '';
+  const lost = G.over === 'lost';
+  if (G.open[i]) {
+    if (G.mine && G.mine[i]) { cls += ' o boom'; html = MINE; }
+    else {
+      cls += ' o';
+      const n = B.num ? B.num[i] : 0;
+      if (n) { cls += ' num n' + n; html = String(n); }
+    }
+  } else if (G.flag[i]) {
+    if (lost && G.mine && !G.mine[i]) { cls += ' o'; html = MINE + XMARK; }
+    else html = FLAG;
+  } else if (lost && G.mine && G.mine[i]) { cls += ' o'; html = MINE; }
+  else if (ui.pressed === i) cls += ' pressed';
+  if (ui.hint && ui.hint.i === i) cls += ' hint';
+  if (el.className !== cls) el.className = cls;
+  if (el._h !== html) { el.innerHTML = html; el._h = html; }
+}
+
+function led(n) {
+  const neg = n < 0; n = Math.min(999, Math.abs(n));
+  const s = String(n).padStart(neg ? 2 : 3, '0');
+  return neg ? '-' + s : s;
+}
+
+function render() {
+  document.querySelectorAll('#levels button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.level === G.level)));
+  $('noGuess').checked = G.noGuess;
+  document.querySelectorAll('.mode button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === saved.settings.mode)));
+  for (let i = 0; i < cellEls.length; i++) paintCell(i);
+  const flags = G.flag.reduce((s, x) => s + x, 0);
+  $('mines').textContent = led(G.mines - flags);
+  $('time').textContent = led(Math.floor(G.elapsed / 1000));
+  $('face').textContent = G.over === 'won' ? '😎' : G.over === 'lost' ? '😵' : ui.pressed >= 0 ? '😮' : '🙂';
+  $('hintBtn').disabled = !!G.over;
+  $('undoBtn').disabled = !G.hist.length;
+  $('msg').innerHTML = ui.msg;
+}
+
+function save() {
+  saved.settings.level = G.level; saved.settings.noGuess = G.noGuess;
+  const h = G.hist; if (h.length > 30) G.hist = h.slice(-30);
+  saved.game = G; persist();
+  G.hist = h;
+}
+
+/* ----- moves ----- */
+function snapshot() {
+  G.hist.push({ o: G.open.join(''), f: G.flag.join('') });
+  if (G.hist.length > 200) G.hist.shift();
+}
+
+function startTimer() { G.started = true; ui.lastTick = performance.now(); }
+
+function dig(i) {
+  if (G.over || G.open[i] || G.flag[i]) return;
+  if (!G.mine) {
+    const r = generate(B, i, G.noGuess, Math.random, 3000);
+    G.mine = B.mine; G.ngOk = G.noGuess ? r.ok : null;
+    startTimer();
+    if (G.noGuess && !r.ok) ui.msg = 'Couldn’t build a no-guess board in time; this one may need a guess.';
+  }
+  snapshot();
+  const r = reveal(B, i);
+  ui.hint = null;
+  if (!G.noGuess || G.ngOk !== false) ui.msg = '';
+  if (r.hit) return lose(i);
+  afterMove();
+}
+
+function chord(i) {
+  if (G.over) return;
+  const t = chordTargets(B, i);
+  if (!t.length) return;
+  snapshot();
+  ui.hint = null; ui.msg = '';
+  let hit = -1;
+  for (const j of t) { const r = reveal(B, j); if (r.hit && hit < 0) hit = j; }
+  if (hit >= 0) return lose(hit);
+  afterMove();
+}
+
+function toggleFlag(i) {
+  if (G.over || G.open[i]) return;
+  snapshot();
+  G.flag[i] = G.flag[i] ? 0 : 1;
+  if (ui.hint) ui.hint = null;
+  ui.msg = '';
+  save(); render();
+}
+
+function afterMove() {
+  if (isWon(B)) return win();
+  save(); render();
+}
+
+function record(won) {
+  if (G.recorded) return;
+  saved.backup = JSON.parse(JSON.stringify(saved.stats));
+  const k = statKey(G), s = saved.stats[k] || (saved.stats[k] = { played: 0, won: 0, best: null, streak: 0, bestStreak: 0 });
+  s.played++;
+  let newBest = false;
+  if (won) {
+    s.won++; s.streak++; s.bestStreak = Math.max(s.bestStreak, s.streak);
+    if (!G.assisted && (s.best === null || G.elapsed < s.best)) { s.best = G.elapsed; newBest = true; }
+  } else s.streak = 0;
+  G.recorded = true;
+  renderStats();
+  return newBest;
+}
+
+function win() {
+  G.over = 'won';
+  for (let i = 0; i < B.N; i++) if (G.mine[i]) G.flag[i] = 1;
+  const nb = record(true);
+  const secs = (G.elapsed / 1000).toFixed(1);
+  ui.msg = `Cleared in <b>${secs}s</b>${nb ? ' — a new best!' : G.assisted ? ' (with help, so it isn’t a best time)' : ''}. Tap the face to play again.`;
+  save(); render();
+}
+
+function lose(i) {
+  G.over = 'lost'; G.boom = i;
+  record(false);
+  ui.msg = 'Boom. Tap <b>Undo</b> to take it back, or the face for a new game.';
+  save(); render();
+  if (navigator.vibrate) try { navigator.vibrate(60); } catch (e) {}
+}
+
+function undo() {
+  if (!G.hist.length) return;
+  const h = G.hist.pop();
+  if (G.recorded) { if (saved.backup) saved.stats = saved.backup; saved.backup = null; G.recorded = false; renderStats(); }
+  const openedSome = h.o !== G.open.join('');
+  G.open.splice(0, G.open.length, ...h.o.split('').map(Number));
+  G.flag.splice(0, G.flag.length, ...h.f.split('').map(Number));
+  G.over = null; G.boom = -1; if (openedSome) G.assisted = true; ui.hint = null;
+  ui.lastTick = performance.now();
+  ui.msg = 'Move undone.';
+  save(); render();
+}
+
+function hint() {
+  if (G.over) return;
+  if (!G.mine) { ui.msg = 'Tap any square to start. Your first tap is always safe.'; render(); return; }
+  const h = ui.hint;
+  if (h) { // second press: make the hinted move
+    ui.hint = null;
+    if (h.type === 'unflag' || h.type === 'flag') toggleFlag(h.i); else dig(h.i);
+    return;
+  }
+  G.assisted = true;
+  const a = analyze(B, true);
+  const wrong = a.safe.find(i => G.flag[i]);
+  const safeCell = a.safe.find(i => !G.flag[i]);
+  const mineCell = a.mine.find(i => !G.flag[i]);
+  if (wrong !== undefined) { ui.hint = { type: 'unflag', i: wrong }; ui.msg = 'That flag is wrong: the square is safe. Tap <b>Hint</b> again to remove it.'; }
+  else if (safeCell !== undefined) { ui.hint = { type: 'dig', i: safeCell }; ui.msg = 'This square is certainly safe. Tap <b>Hint</b> again to open it.'; }
+  else if (mineCell !== undefined) { ui.hint = { type: 'flag', i: mineCell }; ui.msg = 'This square must be a mine. Tap <b>Hint</b> again to flag it.'; }
+  else {
+    let best = -1, bp = 2;
+    for (let i = 0; i < B.N; i++) if (!G.open[i] && !G.flag[i] && a.prob[i] < bp - 1e-12) { bp = a.prob[i]; best = i; }
+    if (best < 0) { ui.msg = 'No moves left to suggest.'; render(); return; }
+    ui.hint = { type: 'guess', i: best };
+    ui.msg = `Nothing is certain here. Least risky square: <b>${Math.round(bp * 100)}%</b> chance of a mine${a.exact ? '' : ' (estimated)'}. Tap <b>Hint</b> again to open it.`;
+  }
+  save(); render();
+  const el = cellEls[ui.hint.i]; if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+}
+
+/* ----- input: tap, long-press, right-click, chord ----- */
+let press = null;
+function primary(i) {
+  if (G.over) return;
+  if (G.open[i]) return chord(i);
+  if (saved.settings.mode === 'flag') return toggleFlag(i);
+  if (G.flag[i]) { ui.msg = 'That square is flagged. Long-press it (or use 🚩 mode) to remove the flag.'; render(); return; }
+  dig(i);
+}
+function alternate(i) {
+  if (G.over) return;
+  if (G.open[i]) return chord(i);
+  if (saved.settings.mode === 'flag') { if (!G.flag[i]) dig(i); return; }
+  toggleFlag(i);
+}
+const board = $('board');
+board.addEventListener('contextmenu', e => e.preventDefault());
+board.addEventListener('pointerdown', e => {
+  const el = e.target.closest('.c'); if (!el || G.over) return;
+  const i = +el.dataset.i;
+  if (e.pointerType === 'mouse') {
+    if (e.button === 2) { e.preventDefault(); alternate(i); return; }
+    if (e.button === 1) { e.preventDefault(); chord(i); return; }
+    if (e.button !== 0) return;
+  }
+  press = { i, x: e.clientX, y: e.clientY, id: e.pointerId, long: false, t: null };
+  if (e.pointerType !== 'mouse') {
+    press.t = setTimeout(() => {
+      if (!press) return;
+      press.long = true;
+      if (navigator.vibrate) try { navigator.vibrate(18); } catch (er) {}
+      ui.pressed = -1; alternate(press.i);
+    }, 380);
+  }
+  if (!G.open[i] && !G.flag[i]) { ui.pressed = i; paintCell(i); $('face').textContent = '😮'; }
+});
+const cancelPress = () => {
+  if (!press) return;
+  clearTimeout(press.t); const p = ui.pressed; ui.pressed = -1; press = null;
+  if (p >= 0) paintCell(p);
+  if (!G.over) $('face').textContent = '🙂';
+};
+board.addEventListener('pointermove', e => {
+  if (press && e.pointerId === press.id && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) cancelPress();
+});
+board.addEventListener('pointercancel', cancelPress);
+board.addEventListener('pointerleave', e => { if (press && e.pointerType === 'mouse') cancelPress(); });
+board.addEventListener('pointerup', e => {
+  if (!press || e.pointerId !== press.id) return;
+  const p = press; clearTimeout(p.t); press = null;
+  const was = ui.pressed; ui.pressed = -1;
+  if (!p.long) {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const c = el && el.closest && el.closest('.c');
+    if (c && +c.dataset.i === p.i) primary(p.i);
+    else if (was >= 0) paintCell(was);
+  }
+  render();
+});
+
+/* ----- controls ----- */
+$('face').addEventListener('click', () => newGame(G.level, G.noGuess));
+document.querySelectorAll('#levels button').forEach(b => b.addEventListener('click', () => {
+  if (b.dataset.level === G.level && !G.started) return;
+  if (G.started && !G.over && !confirm('Start a new ' + LEVELS[b.dataset.level].name + ' game? This one will be lost.')) return;
+  newGame(b.dataset.level, G.noGuess);
+}));
+$('noGuess').addEventListener('change', e => {
+  saved.settings.noGuess = e.target.checked;
+  if (G.started && !G.over) {
+    if (!confirm(e.target.checked ? 'Switch to no-guess boards? This starts a new game.' : 'Switch to classic boards? This starts a new game.')) { e.target.checked = G.noGuess; return; }
+  }
+  newGame(G.level, e.target.checked);
+});
+document.querySelectorAll('.mode button').forEach(b => b.addEventListener('click', () => { saved.settings.mode = b.dataset.mode; persist(); render(); }));
+$('hintBtn').addEventListener('click', hint);
+$('undoBtn').addEventListener('click', undo);
+$('zoomIn').addEventListener('click', () => { saved.settings.zoom = Math.min(ZOOMS.length - 1, saved.settings.zoom + 1); persist(); sizeBoard(); });
+$('zoomOut').addEventListener('click', () => { saved.settings.zoom = Math.max(0, saved.settings.zoom - 1); persist(); sizeBoard(); });
+$('resetStats').addEventListener('click', () => { if (!confirm('Reset all Minesweeper stats?')) return; saved.stats = {}; saved.backup = null; persist(); renderStats(); });
+window.addEventListener('resize', () => sizeBoard());
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input,select,textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === 'h' || e.key === 'H') hint();
+  else if (e.key === 'z' || e.key === 'u') undo();
+  else if (e.key === 'n' || e.key === 'F2') { e.preventDefault(); newGame(G.level, G.noGuess); }
+});
+
+function renderStats() {
+  const rows = [];
+  for (const lv of Object.keys(LEVELS)) for (const ng of [false, true]) {
+    const s = saved.stats[lv + (ng ? '-ng' : '')]; if (!s || !s.played) continue;
+    rows.push(`<tr><td>${LEVELS[lv].name}${ng ? ' · no-guess' : ''}</td><td>${s.won}/${s.played}</td><td>${Math.round(100 * s.won / s.played)}%</td>` +
+      `<td>${s.best === null ? '–' : (s.best / 1000).toFixed(1) + 's'}</td><td>${s.streak} / ${s.bestStreak}</td></tr>`);
+  }
+  $('stats').innerHTML = rows.length
+    ? `<table class="stats"><tr><th>Level</th><th>Won</th><th>Win %</th><th>Best</th><th>Streak / best</th></tr>${rows.join('')}</table>`
+    : '<p style="color:var(--muted);margin:0 0 12px">No finished games yet.</p>';
+}
+
+/* ----- timer ----- */
+setInterval(() => {
+  const now = performance.now();
+  if (G && G.started && !G.over && document.visibilityState === 'visible') {
+    G.elapsed += now - (ui.lastTick || now);
+    const s = led(Math.floor(G.elapsed / 1000));
+    if ($('time').textContent !== s) $('time').textContent = s;
+  }
+  ui.lastTick = now;
+}, 200);
+document.addEventListener('visibilitychange', () => { ui.lastTick = performance.now(); if (G) save(); });
+window.addEventListener('pagehide', () => { if (G) save(); });
+
+/* ----- start ----- */
+if (validGame(saved.game)) {
+  G = saved.game; G.hist = G.hist || [];
+  attach(); buildBoard();
+  ui.msg = G.over ? (G.over === 'won' ? 'Cleared! Tap the face to play again.' : 'Boom. Tap <b>Undo</b> to take it back, or the face for a new game.') : G.started ? 'Game restored.' : 'Tap any square to start. Your first tap is always safe.';
+  render();
+} else newGame(saved.settings.level, saved.settings.noGuess);
+renderStats();
+</script>
+</body>
+</html>
