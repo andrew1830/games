@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Yahtzee">
+<meta name="theme-color" content="#1d5c3c">
+<title>Yahtzee</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Oswald:wght@500;600&family=Caveat:wght@600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root{
+  --bg:#ece5d8; --fg:#2a221c; --muted:#76695e; --accent:#b3261e;
+  --paper:#fffcf3; --rule:#e2d8c4; --rule2:#cdbfa6; --ink:#1f3a93; --pencil:#a1958a; --hl:#ffe680; --sel-ink:#7a5a00;
+  --felt:#1f6b45; --felt2:#134a2f; --wood:#7a4a24; --wood2:#4f2e14;
+  --die:#fbf8f0; --die-edge:#d9d1c1; --pip:#1c1a18; --held:#b3261e;
+  --btn:#fbf8f2; --btn-fg:#2a221c; --primary:#f2c14e; --primary-fg:#3a2600;
+  --display:"Alfa Slab One",Rockwell,Georgia,serif;
+  --label:"Oswald","Arial Narrow",sans-serif;
+  --hand:"Caveat","Segoe Print","Bradley Hand",cursive;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#16120f; --fg:#eee5da; --muted:#a99b8d; --accent:#ef6a5c;
+  --paper:#241e18; --rule:#372e25; --rule2:#4a3e32; --ink:#9db8ff; --pencil:#7f7467; --hl:rgba(255,214,80,.26); --sel-ink:#ffd76a;
+  --felt:#195a3a; --felt2:#0d3320; --wood:#5a3519; --wood2:#36200d;
+  --die:#f3efe5; --die-edge:#c9c0ae; --pip:#1c1a18; --held:#ef6a5c;
+  --btn:#2c251f; --btn-fg:#eee5da; --primary:#f2c14e; --primary-fg:#2d1d00;
+  color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 var(--body);
+  padding:max(14px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));
+  -webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit}
+main{max-width:980px;margin:0 auto;padding-bottom:calc(214px + env(safe-area-inset-bottom))}
+.backlink{display:inline-block;margin:0 0 4px;font-size:14px;font-weight:700;color:var(--muted);text-decoration:none}
+.backlink:hover{color:var(--accent)}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:10px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(1.9rem,8vw,2.5rem);line-height:1;margin:0;color:var(--accent);
+  letter-spacing:.02em;text-shadow:2px 2px 0 color-mix(in srgb,var(--accent) 22%,transparent);flex:1 1 auto}
+.newgame{border:1px solid var(--rule2);background:var(--btn);border-radius:10px;padding:8px 14px;font-weight:700;cursor:pointer;min-height:40px}
+.modebar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;width:100%}
+.seg{display:inline-flex;border:1px solid var(--rule2);border-radius:10px;overflow:hidden;background:var(--btn)}
+.seg button{border:0;background:transparent;padding:8px 14px;min-height:40px;font-weight:700;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+select.level{border:1px solid var(--rule2);background:var(--btn);color:var(--fg);border-radius:10px;padding:8px 10px;min-height:40px;font:inherit;font-size:15px}
+.status{font-family:var(--label);font-weight:500;letter-spacing:.04em;text-transform:uppercase;font-size:14px;color:var(--muted);margin:2px 0 8px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.status b{color:var(--fg);font-weight:600}
+
+/* ---------- dice tray (docked to the bottom on phones) ---------- */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:20;
+  background:radial-gradient(120% 140% at 50% 0%,var(--felt) 0%,var(--felt2) 100%);
+  border-top:6px solid var(--wood);box-shadow:0 -1px 0 var(--wood2),0 -8px 24px rgba(0,0,0,.18);
+  padding:8px max(16px,env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));color:#f4efe4}
+.dock-inner{max-width:520px;margin:0 auto}
+.msg{min-height:2.6em;font-size:15px;line-height:1.3;text-align:center;display:flex;align-items:center;justify-content:center;padding:0 4px;text-wrap:balance}
+.msg b{color:#ffd86b}
+.dice{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:6px auto 4px;max-width:400px;padding-top:10px}
+.die{position:relative;aspect-ratio:1;border-radius:18%;border:0;padding:12%;cursor:pointer;background:var(--die);
+  box-shadow:inset 0 -4px 0 var(--die-edge),inset 0 0 0 1px rgba(0,0,0,.08),0 4px 8px rgba(0,0,0,.35);
+  display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);transition:transform .15s,opacity .2s;touch-action:manipulation}
+.die i{width:72%;height:72%;margin:auto;border-radius:50%;background:var(--pip);visibility:hidden;box-shadow:inset 0 1px 1px rgba(0,0,0,.6)}
+.die i.on{visibility:visible}
+.die.held{transform:translateY(-9px);box-shadow:inset 0 -4px 0 var(--die-edge),0 0 0 3px var(--held),0 10px 14px rgba(0,0,0,.4)}
+.die.held::after{content:"HELD";position:absolute;left:50%;bottom:-19px;transform:translateX(-50%);font:600 11px/1 var(--label);letter-spacing:.12em;color:#ffd0c9}
+.die.blank{opacity:.42}
+.die.suggest{outline:3px dashed #ffd86b;outline-offset:3px}
+.die:disabled{cursor:default}
+.die.rolling{animation:tumble .45s ease-in-out}
+.die.party{animation:hop .6s ease-in-out 2}
+@keyframes tumble{0%{transform:rotate(0) translateY(0)}25%{transform:rotate(-24deg) translateY(-12px)}55%{transform:rotate(18deg) translateY(-4px)}80%{transform:rotate(-6deg)}100%{transform:rotate(0)}}
+@keyframes hop{0%,100%{transform:translateY(0)}40%{transform:translateY(-16px) rotate(8deg)}}
+.ctrls{display:grid;grid-template-columns:1fr 2fr 1fr;gap:10px;margin-top:16px}
+.ctrls.nounfo{grid-template-columns:1fr 3fr}
+.ctrls button{min-height:48px;border-radius:12px;border:0;font-weight:700;cursor:pointer;touch-action:manipulation}
+.ctrls .sec{background:rgba(255,255,255,.14);color:#f4efe4;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.ctrls .primary{background:var(--primary);color:var(--primary-fg);font-size:17px;box-shadow:0 3px 0 #a4781a}
+.ctrls .primary.scoremode{background:#fff4c9}
+.ctrls button:disabled{opacity:.45;cursor:default;box-shadow:none}
+.pips{display:inline-flex;gap:4px;margin-left:8px;vertical-align:middle}
+.pips span{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.25}
+.pips span.on{opacity:1}
+
+/* ---------- score card ---------- */
+.card{background:var(--paper);border:1px solid var(--rule2);border-radius:6px;box-shadow:0 2px 0 var(--rule2),0 10px 30px rgba(0,0,0,.08);overflow:hidden}
+.card-head{background:var(--accent);color:#fff;display:grid;grid-template-columns:1fr var(--col) var(--col);align-items:end;padding:8px 0 6px 10px;gap:0;
+  font:600 13px/1.1 var(--label);letter-spacing:.06em;text-transform:uppercase}
+.card-head .t{font-family:var(--display);font-weight:400;letter-spacing:.04em;font-size:17px;text-transform:none}
+.card-head .c{text-align:center}
+.card{--col:76px}
+.card.solo{--col:96px}
+.card.solo .p2{display:none}
+.card.solo .card-head{grid-template-columns:1fr var(--col)}
+.sect{font:600 11px/1 var(--label);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);padding:9px 10px 5px;border-bottom:2px solid var(--rule2);background:color-mix(in srgb,var(--rule) 35%,transparent)}
+.row{display:grid;grid-template-columns:1fr var(--col) var(--col);border-bottom:1px solid var(--rule);min-height:42px;align-items:stretch}
+.card.solo .row{grid-template-columns:1fr var(--col)}
+.row .lab{display:flex;flex-direction:column;justify-content:center;padding:4px 10px;font:500 16px/1.1 var(--label);letter-spacing:.03em;text-transform:uppercase}
+.row .lab small{font:400 12px/1.2 var(--body);text-transform:none;letter-spacing:0;color:var(--muted);margin-top:2px}
+.cell{border:0;border-left:1px solid var(--rule);background:transparent;display:flex;align-items:center;justify-content:center;gap:4px;
+  font:700 26px/1 var(--hand);color:var(--ink);padding:0;min-height:42px;position:relative}
+button.cell{cursor:default}
+button.cell.open{cursor:pointer}
+.cell .pot{color:var(--pencil);font-weight:600;font-size:23px}
+.cell .pot.zero{opacity:.7}
+.cell.open:hover{background:color-mix(in srgb,var(--hl) 40%,transparent)}
+.cell.sel{background:var(--hl);box-shadow:inset 0 0 0 2px var(--sel-ink)}
+.cell.sel .pot{color:var(--sel-ink);font-weight:700}
+.cell.na{color:var(--pencil);font-size:18px}
+.cell.just{animation:flash 1.4s ease-out}
+@keyframes flash{0%{background:var(--hl)}100%{background:transparent}}
+.cell small{font:700 12px/1 var(--body);color:var(--muted)}
+.row.sum{background:color-mix(in srgb,var(--rule) 30%,transparent);min-height:38px}
+.row.sum .lab{font-weight:600;font-size:14px;letter-spacing:.08em}
+.row.sum .cell{font-size:23px;min-height:38px}
+.row.grand{border-top:2px solid var(--rule2);border-bottom:0;background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.row.grand .lab{font-size:17px}
+.row.grand .cell{font-size:30px}
+.ybmarks{font:700 20px/1 var(--hand)}
+
+.below{margin:16px 0 8px;display:grid;gap:10px}
+details{background:var(--paper);border:1px solid var(--rule2);border-radius:10px;padding:0 14px}
+summary{cursor:pointer;padding:12px 0;font-weight:700;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸ ";color:var(--accent)}
+details[open] summary::before{content:"▾ "}
+details ul{margin:0 0 14px;padding-left:20px}
+details li{margin:4px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px}
+.stat{border:1px solid var(--rule);border-radius:8px;padding:8px 10px}
+.stat b{display:block;font:700 28px/1 var(--hand);color:var(--ink)}
+.stat span{font-size:13px;color:var(--muted)}
+.linkbtn{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0 0 14px;font-size:14px}
+
+/* ---------- game over ---------- */
+.overlay{position:fixed;inset:0;z-index:40;background:rgba(10,8,6,.55);display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.show{display:flex}
+.over{background:var(--paper);color:var(--fg);border-radius:14px;max-width:360px;width:100%;padding:22px 20px 18px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--rule2)}
+.over h2{font-family:var(--display);font-weight:400;color:var(--accent);margin:0 0 6px;font-size:28px}
+.over .big{font:700 44px/1 var(--hand);color:var(--ink);margin:6px 0}
+.over p{margin:6px 0;color:var(--muted)}
+.over .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.over button{min-height:46px;border-radius:12px;border:1px solid var(--rule2);background:var(--btn);font-weight:700;cursor:pointer}
+.over button.go{background:var(--primary);color:var(--primary-fg);border:0}
+.toast{position:fixed;left:50%;top:max(16px,env(safe-area-inset-top));transform:translate(-50%,-220%);visibility:hidden;z-index:50;background:var(--accent);color:#fff;
+  font-family:var(--display);font-size:22px;padding:10px 20px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:transform .35s cubic-bezier(.2,1.4,.4,1);pointer-events:none;white-space:nowrap}
+.toast.show{transform:translate(-50%,0);visibility:visible}
+.kbd{display:none}
+
+@media (min-width:860px){
+  main{padding-bottom:40px}
+  .layout{display:grid;grid-template-columns:400px 1fr;gap:24px;align-items:start}
+  .dock{position:sticky;top:16px;border:8px solid var(--wood);border-radius:18px;box-shadow:inset 0 2px 10px rgba(0,0,0,.35),0 12px 30px rgba(0,0,0,.2);padding:14px 16px 18px}
+  .dice{gap:12px}
+  .card{--col:96px}
+  .card.solo{--col:120px}
+  .kbd{display:block;text-align:center;font-size:12px;opacity:.7;margin-top:10px}
+  .below{grid-column:1 / -1}
+}
+@media (max-width:370px){ .card{--col:66px} .row .lab{font-size:15px} }
+@media (prefers-reduced-motion:reduce){ .die.rolling,.die.party,.cell.just{animation:none} .toast{transition:none} }
+</style>
+</head>
+<body>
+<main>
+  <a class="backlink" href="../">← All games</a>
+  <header>
+    <h1>Yahtzee</h1>
+    <button class="newgame" id="newBtn" type="button">New game</button>
+    <div class="modebar">
+      <div class="seg" role="group" aria-label="Game mode">
+        <button type="button" data-mode="solo" aria-pressed="true">Solo</button>
+        <button type="button" data-mode="cpu" aria-pressed="false">vs Computer</button>
+      </div>
+      <select class="level" id="level" aria-label="Computer strength">
+        <option value="steady">Steady computer (avg ~220)</option>
+        <option value="expert">Expert computer (avg ~240)</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="layout">
+    <section class="dock" id="dock" aria-label="Dice">
+      <div class="dock-inner">
+        <div class="msg" id="msg" aria-live="polite"></div>
+        <div class="dice" id="dice"></div>
+        <div class="ctrls" id="ctrls">
+          <button type="button" class="sec" id="hintBtn">Hint</button>
+          <button type="button" class="primary" id="rollBtn">Roll</button>
+          <button type="button" class="sec" id="undoBtn">Undo</button>
+        </div>
+        <div class="kbd">Space roll · 1–5 hold · Enter score · H hint</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="status" id="status"></div>
+      <div class="card" id="card"></div>
+    </section>
+
+    <div class="below">
+      <details id="statsBox">
+        <summary>Stats</summary>
+        <div class="stats" id="stats"></div>
+        <button type="button" class="linkbtn" id="resetStats">Reset stats</button>
+      </details>
+      <details>
+        <summary>How to play</summary>
+        <ul>
+          <li>13 rounds. Each turn you get up to three rolls. Tap dice to hold them between rolls.</li>
+          <li>After any roll you can score: tap a box, then press <b>Score</b>. Every turn fills exactly one box, so sometimes you have to take a 0.</li>
+          <li><b>Upper section:</b> add up only the dice showing that number. Reach 63 or more (three of each) for a <b>35-point bonus</b>. The small +/− next to your subtotal shows how far ahead or behind that pace you are.</li>
+          <li><b>3 / 4 of a Kind:</b> total of all five dice. <b>Full House</b> (three of one, two of another): 25. <b>Small Straight</b> (four in a row): 30. <b>Large Straight</b> (five in a row): 40. <b>Yahtzee</b> (five alike): 50. <b>Chance:</b> total of all dice.</li>
+          <li><b>Yahtzee bonus:</b> every extra Yahtzee after scoring 50 in the Yahtzee box earns 100 more.</li>
+          <li><b>Joker rules</b> for any extra Yahtzee: you must fill the matching upper box if it's open. If not, use any open lower box, where Full House and the straights score their full 25 / 30 / 40. If those are full too, take a 0 in an upper box. A 0 in the Yahtzee box means no bonus, but the Joker rules still apply.</li>
+          <li>Five of a kind counts as a Full House only under the Joker rules.</li>
+          <li>Against the computer, the higher total after 13 rounds wins. <b>Hint</b> uses the expert computer's strategy; <b>Undo</b> (solo only) takes back your last box until you roll again.</li>
+        </ul>
+      </details>
+    </div>
+  </div>
+</main>
+
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="overTitle">
+  <div class="over">
+    <h2 id="overTitle">Game over</h2>
+    <div class="big" id="overScore"></div>
+    <p id="overLine"></p>
+    <p id="overStat"></p>
+    <div class="btns">
+      <button type="button" id="overClose">See card</button>
+      <button type="button" class="go" id="overAgain">Play again</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/*CORE-START*/
+const CATS = ['ones','twos','threes','fours','fives','sixes','threeKind','fourKind','fullHouse','smStraight','lgStraight','yahtzee','chance'];
+const UPPER = CATS.slice(0, 6);
+const LOWER = CATS.slice(6);
+const LABELS = {
+  ones: 'Ones', twos: 'Twos', threes: 'Threes', fours: 'Fours', fives: 'Fives', sixes: 'Sixes',
+  threeKind: '3 of a Kind', fourKind: '4 of a Kind', fullHouse: 'Full House', smStraight: 'Sm. Straight',
+  lgStraight: 'Lg. Straight', yahtzee: 'Yahtzee', chance: 'Chance'
+};
+const SUBS = { threeKind: 'Total of dice', fourKind: 'Total of dice', fullHouse: '25 points', smStraight: '4 in a row · 30',
+  lgStraight: '5 in a row · 40', yahtzee: '5 alike · 50', chance: 'Total of dice' };
+
+function counts(d) { const c = [0, 0, 0, 0, 0, 0, 0]; for (const v of d) c[v]++; return c; }
+function sumDice(d) { let s = 0; for (const v of d) s += v; return s; }
+function isYahtzee(d) { return d.length === 5 && d.every(v => v === d[0]); }
+function newCard() { const o = { yb: 0 }; for (const c of CATS) o[c] = null; return o; }
+function cardFull(card) { return CATS.every(c => card[c] !== null); }
+function filledCount(card) { return CATS.filter(c => card[c] !== null).length; }
+
+function baseScore(cat, d) {
+  const c = counts(d), s = sumDice(d);
+  const u = UPPER.indexOf(cat);
+  if (u >= 0) return c[u + 1] * (u + 1);
+  const run = (a, b) => { for (let f = a; f <= b; f++) if (!c[f]) return false; return true; };
+  switch (cat) {
+    case 'threeKind': return c.some(n => n >= 3) ? s : 0;
+    case 'fourKind': return c.some(n => n >= 4) ? s : 0;
+    case 'fullHouse': return c.includes(3) && c.includes(2) ? 25 : 0;
+    case 'smStraight': return run(1, 4) || run(2, 5) || run(3, 6) ? 30 : 0;
+    case 'lgStraight': return run(1, 5) || run(2, 6) ? 40 : 0;
+    case 'yahtzee': return c.includes(5) ? 50 : 0;
+    case 'chance': return s;
+  }
+  return 0;
+}
+
+// Joker rules (official): applies to a Yahtzee rolled after the Yahtzee box is filled (with 50 or 0).
+function jokerActive(card, d) { return isYahtzee(d) && card.yahtzee !== null; }
+
+function legalCats(card, d) {
+  const open = CATS.filter(c => card[c] === null);
+  if (!jokerActive(card, d)) return open;
+  const up = UPPER[d[0] - 1];
+  if (card[up] === null) return [up];               // must use the matching upper box
+  const low = open.filter(c => LOWER.includes(c));
+  return low.length ? low : open;                   // else any open lower box, else zero an upper box
+}
+
+function scoreFor(card, cat, d) {
+  if (jokerActive(card, d)) {
+    if (cat === 'fullHouse') return 25;
+    if (cat === 'smStraight') return 30;
+    if (cat === 'lgStraight') return 40;
+  }
+  return baseScore(cat, d);
+}
+
+function bonusEarned(card, d) { return isYahtzee(d) && card.yahtzee === 50; }
+
+function applyScore(card, cat, d) {
+  const nc = Object.assign({}, card);
+  if (bonusEarned(card, d)) nc.yb = (nc.yb || 0) + 1;
+  nc[cat] = scoreFor(card, cat, d);
+  return nc;
+}
+
+function totals(card) {
+  let upper = 0, lower = 0, parFilled = 0;
+  UPPER.forEach((c, i) => { if (card[c] !== null) { upper += card[c]; parFilled += 3 * (i + 1); } });
+  for (const c of LOWER) lower += card[c] || 0;
+  const bonus = upper >= 63 ? 35 : 0;
+  const yb = (card.yb || 0) * 100;
+  return { upper, pace: upper - parFilled, bonus, upperTotal: upper + bonus, lower, yb, lowerTotal: lower + yb, grand: upper + bonus + lower + yb };
+}
+
+/* ---------- Computer player: exact expectimax over the turn's rerolls ---------- */
+const ZERO_PAR = {}; CATS.forEach(c => ZERO_PAR[c] = 0);
+const PROFILES = {
+  // Expert: weighs each box against what it's typically worth later, and the upper bonus. ~240-245 avg in simulation.
+  expert: { name: 'expert', A: 1, B: 2, C: 1,
+    par: { ones: 2.1, twos: 5.3, threes: 8.6, fours: 12.2, fives: 15.7, sixes: 19.2, threeKind: 21.7, fourKind: 13.1,
+           fullHouse: 22.6, smStraight: 29.5, lgStraight: 32.7, yahtzee: 16.9, chance: 22.0 } },
+  // Steady: rolls well but always grabs the biggest score now. ~220 avg in simulation.
+  steady: { name: 'steady', A: -30, B: 2, C: 1, par: ZERO_PAR }
+};
+
+const OUT = (() => { // OUT[k] = distinct sorted outcomes of rolling k dice, with probabilities
+  const res = [];
+  for (let k = 0; k <= 5; k++) {
+    const m = new Map(), total = Math.pow(6, k);
+    for (let i = 0; i < total; i++) {
+      const d = []; let x = i;
+      for (let j = 0; j < k; j++) { d.push(x % 6 + 1); x = Math.floor(x / 6); }
+      d.sort((a, b) => a - b);
+      const key = d.join('');
+      const e = m.get(key);
+      if (e) e.p += 1 / total; else m.set(key, { d, p: 1 / total });
+    }
+    res.push([...m.values()]);
+  }
+  return res;
+})();
+
+function keyOf(d) { return d.slice().sort((a, b) => a - b).join(''); }
+
+function subHolds(d) { // distinct sub-multisets of the dice, each as a sorted array
+  const s = d.slice().sort((a, b) => a - b), seen = new Map();
+  for (let mask = 0; mask < 32; mask++) {
+    const h = []; for (let i = 0; i < 5; i++) if (mask & (1 << i)) h.push(s[i]);
+    const k = h.join(''); if (!seen.has(k)) seen.set(k, h);
+  }
+  return [...seen.values()];
+}
+
+function bonusEst(card, P) {
+  let upper = 0, parFilled = 0, maxRemain = 0, n = 0;
+  UPPER.forEach((c, i) => {
+    const f = i + 1;
+    if (card[c] === null) { maxRemain += 5 * f; n++; } else { upper += card[c]; parFilled += 3 * f; }
+  });
+  if (upper >= 63) return 35;
+  if (n === 0 || upper + maxRemain < 63) return 0;
+  const d = upper - parFilled;
+  return 35 / (1 + Math.exp(-(d + P.A) / (P.B + P.C * n)));
+}
+
+function catValue(card, cat, d, P) {
+  const sc = scoreFor(card, cat, d);
+  let v = sc - P.par[cat];
+  if (UPPER.includes(cat)) {
+    const after = Object.assign({}, card); after[cat] = sc;
+    v += bonusEst(after, P) - bonusEst(card, P);
+  }
+  return v;
+}
+
+function bestCategory(card, d, P) {
+  let best = null, bv = -Infinity;
+  for (const c of legalCats(card, d)) {
+    const v = catValue(card, c, d, P);
+    if (v > bv) { bv = v; best = c; }
+  }
+  return { cat: best, value: bv + (bonusEarned(card, d) ? 100 : 0) };
+}
+
+let planCache = { key: null, plan: null };
+function planTurn(card, P) {
+  const ck = P.name + JSON.stringify(card);
+  if (planCache.key === ck) return planCache.plan;
+  const V0 = new Map();
+  for (const o of OUT[5]) V0.set(o.d.join(''), bestCategory(card, o.d, P).value);
+  const holdEV = V => { // E[V(hold + new dice)] for every possible hold
+    const H = new Map();
+    for (let h = 0; h <= 5; h++) for (const ho of OUT[h]) {
+      let e = 0;
+      for (const o of OUT[5 - h]) e += o.p * V.get(keyOf(ho.d.concat(o.d)));
+      H.set(ho.d.join(''), e);
+    }
+    return H;
+  };
+  const H1 = holdEV(V0);
+  const V1 = new Map();
+  for (const o of OUT[5]) {
+    let m = -Infinity;
+    for (const h of subHolds(o.d)) m = Math.max(m, H1.get(h.join('')));
+    V1.set(o.d.join(''), m);
+  }
+  const H2 = holdEV(V1);
+  const plan = { H1, H2 };
+  planCache = { key: ck, plan };
+  return plan;
+}
+
+// Best play for the current position. rollsLeft = rolls still available this turn (0-2 after the first roll).
+function advise(card, dice, rollsLeft, P) {
+  P = P || PROFILES.expert;
+  if (rollsLeft > 0) {
+    const plan = planTurn(card, P), H = rollsLeft >= 2 ? plan.H2 : plan.H1;
+    let best = null, bv = -Infinity;
+    for (const h of subHolds(dice)) {
+      const v = H.get(h.join(''));
+      if (v > bv + 1e-9 || (Math.abs(v - bv) <= 1e-9 && best && h.length > best.length)) { bv = v; best = h; }
+    }
+    if (best.length < 5) return { action: 'roll', hold: holdMask(dice, best), keep: best };
+  }
+  return { action: 'score', cat: bestCategory(card, dice, P).cat };
+}
+
+function holdMask(dice, keep) { // which dice positions to hold so the held values equal `keep`
+  const need = counts(keep);
+  return dice.map(v => (need[v] > 0 ? (need[v]--, true) : false));
+}
+/*CORE-END*/
+
+/* ================= UI ================= */
+const KEY = 'yahtzee.v1';
+const $ = id => document.getElementById(id);
+const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+const wait = ms => new Promise(r => setTimeout(r, ms * (window.__speed || 1)));
+const rnd = () => 1 + Math.floor(Math.random() * 6);
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let saved = { stats: null, settings: { mode: 'solo', level: 'steady' }, game: null };
+try { const raw = localStorage.getItem(KEY); if (raw) saved = Object.assign(saved, JSON.parse(raw)); } catch (e) {}
+const blankStats = () => ({ solo: { games: 0, best: 0, total: 0, yahtzees: 0, bonuses: 0 },
+  cpu: { steady: { w: 0, l: 0, t: 0 }, expert: { w: 0, l: 0, t: 0 }, best: 0 } });
+if (!saved.stats || !saved.stats.solo || !saved.stats.cpu) saved.stats = blankStats();
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {} };
+
+let G = null;            // current game state (saved)
+let ui = { sel: null, suggest: null, busy: false, undo: null, token: 0, just: null };
+
+function freshGame(mode, level) {
+  return { mode, level, cards: [newCard(), newCard()], yz: [0, 0], turn: 0, dice: [1, 2, 3, 4, 5].map(rnd),
+    held: [false, false, false, false, false], rollsLeft: 3, over: false, recorded: false, msg: null };
+}
+function validGame(g) {
+  return g && Array.isArray(g.cards) && g.cards.length === 2 && Array.isArray(g.dice) && g.dice.length === 5 && typeof g.rollsLeft === 'number';
+}
+
+/* ----- score card DOM ----- */
+const cells = { 0: {}, 1: {} };
+function buildCard() {
+  const card = $('card');
+  let h = '<div class="card-head"><span class="t">Score card</span><span class="c p1">You</span><span class="c p2">Computer</span></div>';
+  h += '<div class="sect">Upper section</div>';
+  for (const c of UPPER) h += rowHTML(c, LABELS[c], '');
+  h += sumRow('upsum', 'Upper subtotal') + sumRow('bonus', 'Bonus (63+)');
+  h += '<div class="sect">Lower section</div>';
+  for (const c of LOWER) h += rowHTML(c, LABELS[c], SUBS[c]);
+  h += sumRow('yb', 'Yahtzee bonus') + '<div class="row sum grand"><div class="lab">Grand total</div><div class="cell p1" id="c0-grand"></div><div class="cell p2" id="c1-grand"></div></div>';
+  card.innerHTML = h;
+  for (const c of CATS) {
+    cells[0][c] = $('c0-' + c); cells[1][c] = $('c1-' + c);
+    cells[0][c].addEventListener('click', () => onCell(c));
+  }
+}
+function rowHTML(c, label, sub) {
+  return `<div class="row"><div class="lab">${label}${sub ? `<small>${sub}</small>` : ''}</div>` +
+    `<button type="button" class="cell p1" id="c0-${c}" aria-label="${label}"></button><div class="cell p2" id="c1-${c}"></div></div>`;
+}
+function sumRow(id, label) {
+  return `<div class="row sum"><div class="lab">${label}</div><div class="cell p1" id="c0-${id}"></div><div class="cell p2" id="c1-${id}"></div></div>`;
+}
+
+/* ----- dice DOM ----- */
+const dieEls = [];
+function buildDice() {
+  const wrap = $('dice');
+  for (let i = 0; i < 5; i++) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'die';
+    for (let k = 0; k < 9; k++) b.appendChild(document.createElement('i'));
+    b.addEventListener('click', () => toggleHold(i));
+    wrap.appendChild(b); dieEls.push(b);
+  }
+}
+function paintDie(i, v) {
+  const on = PIPS[v];
+  [...dieEls[i].children].forEach((p, k) => p.classList.toggle('on', on.includes(k)));
+}
+
+/* ----- rendering ----- */
+function humanCanAct() { return !G.over && G.turn === 0 && !ui.busy; }
+function rolled() { return G.rollsLeft < 3; }
+
+function render() {
+  const solo = G.mode === 'solo';
+  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === G.mode)));
+  $('level').style.display = solo ? 'none' : '';
+  $('level').value = G.level;
+  $('card').classList.toggle('solo', solo);
+
+  // dice
+  const canHold = humanCanAct() && rolled() && G.rollsLeft > 0;
+  dieEls.forEach((el, i) => {
+    paintDie(i, G.dice[i]);
+    el.classList.toggle('held', G.held[i] && rolled());
+    el.classList.toggle('blank', !rolled());
+    el.classList.toggle('suggest', !!(ui.suggest && ui.suggest[i]));
+    el.disabled = !canHold;
+    el.setAttribute('aria-pressed', String(!!G.held[i]));
+    el.setAttribute('aria-label', rolled() ? `Die ${i + 1}: ${G.dice[i]}${G.held[i] ? ', held' : ''}` : `Die ${i + 1}: not rolled`);
+  });
+
+  // buttons
+  const rb = $('rollBtn');
+  rb.classList.remove('scoremode');
+  if (G.over) { rb.textContent = 'Play again'; rb.disabled = false; }
+  else if (G.turn === 1) { rb.textContent = 'Computer’s turn'; rb.disabled = true; }
+  else if (ui.sel) {
+    const v = scoreFor(G.cards[0], ui.sel, G.dice);
+    rb.textContent = `Score ${v} · ${LABELS[ui.sel]}`; rb.disabled = ui.busy; rb.classList.add('scoremode');
+  } else if (G.rollsLeft > 0) {
+    rb.innerHTML = (rolled() ? 'Roll again' : 'Roll') + `<span class="pips" aria-label="${G.rollsLeft} rolls left">${[0, 1, 2].map(k => `<span class="${k < G.rollsLeft ? 'on' : ''}"></span>`).join('')}</span>`;
+    rb.disabled = ui.busy;
+  } else { rb.textContent = 'Pick a box'; rb.disabled = true; }
+  $('hintBtn').disabled = !(humanCanAct() && rolled());
+  $('undoBtn').style.display = solo ? '' : 'none';
+  $('ctrls').classList.toggle('nounfo', !solo);
+  $('undoBtn').disabled = !(solo && ui.undo && !ui.busy && !G.over && !rolled()) && !(solo && G.over && ui.undo);
+
+  // score cards
+  const showPot = humanCanAct() && rolled();
+  const legal = showPot ? legalCats(G.cards[0], G.dice) : [];
+  for (const p of [0, 1]) {
+    const card = G.cards[p];
+    for (const c of CATS) {
+      const el = cells[p][c];
+      el.classList.remove('open', 'sel', 'na');
+      if (card[c] !== null) { el.innerHTML = String(card[c]); if (p === 0) { el.disabled = true; el.setAttribute('aria-label', `${LABELS[c]}: ${card[c]}`); } }
+      else if (p === 0 && showPot) {
+        if (legal.includes(c)) {
+          const v = scoreFor(card, c, G.dice);
+          el.innerHTML = `<span class="pot${v === 0 ? ' zero' : ''}">${v}</span>`;
+          el.classList.add('open'); el.disabled = false;
+          el.setAttribute('aria-label', `${LABELS[c]}: score ${v}`);
+          if (ui.sel === c) el.classList.add('sel');
+        } else { el.innerHTML = '–'; el.classList.add('na'); el.disabled = true; }
+      } else { el.innerHTML = ''; if (p === 0) el.disabled = true; }
+      el.classList.toggle('just', !!(ui.just && ui.just.p === p && ui.just.c === c));
+    }
+    const t = totals(card), anyUp = UPPER.some(c => card[c] !== null);
+    const pace = anyUp && t.upper < 63 && UPPER.some(c => card[c] === null) ? `<small>${t.pace > 0 ? '+' : t.pace < 0 ? '−' : '±'}${Math.abs(t.pace)}</small>` : '';
+    $(`c${p}-upsum`).innerHTML = anyUp ? `${t.upper}${pace}` : '';
+    const upDone = UPPER.every(c => card[c] !== null);
+    $(`c${p}-bonus`).innerHTML = t.bonus ? '35' : upDone ? '0' : '';
+    $(`c${p}-yb`).innerHTML = card.yb ? `<span class="ybmarks">${'✓'.repeat(card.yb)}</span>&nbsp;${card.yb * 100}` : '';
+    $(`c${p}-grand`).innerHTML = filledCount(card) ? String(t.grand) : '';
+  }
+
+  // status line
+  const round = Math.min(13, filledCount(G.cards[0]) + (G.turn === 1 ? 0 : 1));
+  const t0 = totals(G.cards[0]).grand, t1 = totals(G.cards[1]).grand;
+  $('status').innerHTML = G.over ? `<span><b>Final</b></span><span>${solo ? `Score <b>${t0}</b>` : `You <b>${t0}</b> · Computer <b>${t1}</b>`}</span>`
+    : `<span>Round <b>${round}</b> of 13</span><span>${solo ? `Score <b>${t0}</b>` : `You <b>${t0}</b> · Computer <b>${t1}</b>`}</span>`;
+
+  $('msg').innerHTML = `<span>${G.msg || defaultMsg()}</span>`;
+}
+
+function defaultMsg() {
+  if (G.over) return 'Game over.';
+  if (G.turn === 1) return 'Computer is playing…';
+  if (!rolled()) return 'Your turn. Roll the dice.';
+  if (ui.sel) return `Press <b>Score</b> to confirm, or tap the box again to cancel.`;
+  const card = G.cards[0];
+  if (jokerActive(card, G.dice)) {
+    const l = legalCats(card, G.dice);
+    const head = card.yahtzee === 50 ? '<b>Yahtzee bonus +100!</b> ' : '<b>Yahtzee!</b> ';
+    if (l.length === 1 && UPPER.includes(l[0])) return head + `Joker rule: it must go in ${LABELS[l[0]]}.`;
+    if (l.every(c => LOWER.includes(c))) return head + 'Joker: any open lower box scores full value.';
+    return head + 'Joker: lower boxes are full, so take a 0 in an upper box.';
+  }
+  if (G.rollsLeft > 0) return 'Tap dice to hold, then roll again or pick a box.';
+  return 'Last roll. Pick a box to score.';
+}
+
+function save() { saved.game = G; saved.settings = { mode: G.mode, level: G.level }; persist(); }
+
+let toastTimer = null;
+function toast(text) {
+  const t = $('toast'); t.textContent = text; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+/* ----- actions ----- */
+async function animateRoll() {
+  const idx = [0, 1, 2, 3, 4].filter(i => !(G.held[i] && rolled()));
+  if (G.rollsLeft === 3) G.held = [false, false, false, false, false];
+  const final = G.dice.map((v, i) => idx.includes(i) ? rnd() : v);
+  dieEls.forEach(el => el.classList.remove('blank', 'party'));
+  if (!reduced) {
+    idx.forEach(i => { dieEls[i].classList.remove('rolling'); void dieEls[i].offsetWidth; dieEls[i].classList.add('rolling'); });
+    for (let k = 0; k < 6; k++) { idx.forEach(i => paintDie(i, rnd())); await wait(70); }
+  }
+  idx.forEach(i => dieEls[i].classList.remove('rolling'));
+  G.dice = final; G.rollsLeft--;
+  if (isYahtzee(G.dice) && !reduced) dieEls.forEach(el => el.classList.add('party'));
+}
+
+async function humanRoll() {
+  if (!humanCanAct() || G.rollsLeft <= 0) return;
+  ui.busy = true; ui.sel = null; ui.suggest = null; ui.undo = null; ui.just = null; G.msg = null;
+  render();
+  await animateRoll();
+  ui.busy = false;
+  if (isYahtzee(G.dice)) toast(G.cards[0].yahtzee === 50 ? 'Yahtzee! +100' : 'Yahtzee!');
+  save(); render();
+}
+
+function toggleHold(i) {
+  if (!humanCanAct() || !rolled() || G.rollsLeft === 0) return;
+  G.held[i] = !G.held[i]; ui.suggest = null; G.msg = null;
+  if (ui.sel) ui.sel = null;
+  save(); render();
+}
+
+function onCell(c) {
+  if (!humanCanAct() || !rolled()) return;
+  if (!legalCats(G.cards[0], G.dice).includes(c)) return;
+  ui.sel = ui.sel === c ? null : c; G.msg = null; ui.suggest = null;
+  render();
+}
+
+function scorePlayer(p, cat) {
+  const card = G.cards[p], wasYz = isYahtzee(G.dice), bonus = bonusEarned(card, G.dice);
+  const v = scoreFor(card, cat, G.dice);
+  G.cards[p] = applyScore(card, cat, G.dice);
+  if (wasYz && (cat === 'yahtzee' && v === 50 || bonus)) G.yz[p]++;
+  ui.just = { p, c: cat };
+  return { v, bonus };
+}
+
+function confirmScore() {
+  if (!humanCanAct() || !ui.sel) return;
+  if (G.mode === 'solo') ui.undo = JSON.stringify(G);
+  const cat = ui.sel;
+  const { v, bonus } = scorePlayer(0, cat);
+  ui.sel = null; ui.suggest = null;
+  G.msg = `You scored <b>${v}</b> in ${LABELS[cat]}${bonus ? ' plus the <b>100</b> Yahtzee bonus' : ''}.`;
+  endTurn();
+}
+
+function resetDice() { G.held = [false, false, false, false, false]; G.rollsLeft = 3; }
+
+function endTurn() {
+  resetDice();
+  const done = cardFull(G.cards[0]) && (G.mode === 'solo' || cardFull(G.cards[1]));
+  if (done) { finishGame(); return; }
+  if (G.mode === 'cpu' && G.turn === 0) { G.turn = 1; save(); render(); cpuTurn(); return; }
+  G.turn = 0; save(); render();
+}
+
+async function cpuTurn() {
+  const my = ++ui.token;
+  const P = PROFILES[G.level] || PROFILES.steady;
+  ui.busy = true; render();
+  await wait(G.msg ? 900 : 300);
+  while (true) {
+    if (my !== ui.token) return;
+    if (G.rollsLeft === 3) {
+      G.msg = 'Computer is rolling…'; render();
+      await animateRoll(); if (my !== ui.token) return; save(); render(); await wait(700);
+      continue;
+    }
+    const a = advise(G.cards[1], G.dice, G.rollsLeft, P);
+    if (my !== ui.token) return;
+    if (a.action === 'roll') {
+      G.held = a.hold;
+      G.msg = a.keep.length ? `Computer holds ${a.keep.join(' ')} and rolls again.` : 'Computer rerolls everything.';
+      render(); await wait(850); if (my !== ui.token) return;
+      await animateRoll(); if (my !== ui.token) return; save(); render(); await wait(650);
+    } else {
+      const { v, bonus } = scorePlayer(1, a.cat);
+      if (bonus) toast('Computer: Yahtzee +100');
+      G.msg = `Computer scored <b>${v}</b> in ${LABELS[a.cat]}${bonus ? ' + 100 bonus' : ''}. Your turn.`;
+      G.turn = 0; resetDice(); ui.busy = false;
+      if (cardFull(G.cards[0]) && cardFull(G.cards[1])) { finishGame(); return; }
+      save(); render(); return;
+    }
+  }
+}
+
+function finishGame() {
+  G.over = true; ui.busy = false;
+  const t0 = totals(G.cards[0]), t1 = totals(G.cards[1]);
+  const st = saved.stats;
+  let line = '', stat = '';
+  if (!G.recorded) {
+    G.recorded = true;
+    if (G.mode === 'solo') {
+      st.solo.games++; st.solo.total += t0.grand; st.solo.yahtzees += G.yz[0]; if (t0.bonus) st.solo.bonuses++;
+      if (t0.grand > st.solo.best) { st.solo.best = t0.grand; G.newBest = true; }
+    } else {
+      const r = st.cpu[G.level] || (st.cpu[G.level] = { w: 0, l: 0, t: 0 });
+      if (t0.grand > t1.grand) r.w++; else if (t0.grand < t1.grand) r.l++; else r.t++;
+      if (t0.grand > st.cpu.best) st.cpu.best = t0.grand;
+    }
+  }
+  if (G.mode === 'solo') {
+    $('overTitle').textContent = G.newBest ? 'New best!' : 'Game over';
+    $('overScore').textContent = t0.grand;
+    line = `${t0.bonus ? 'Upper bonus earned. ' : ''}${G.yz[0] ? `${G.yz[0]} Yahtzee${G.yz[0] > 1 ? 's' : ''}. ` : ''}`;
+    stat = `Best ${st.solo.best} · Average ${Math.round(st.solo.total / Math.max(1, st.solo.games))} over ${st.solo.games} game${st.solo.games === 1 ? '' : 's'}`;
+  } else {
+    const r = st.cpu[G.level];
+    $('overTitle').textContent = t0.grand > t1.grand ? 'You win!' : t0.grand < t1.grand ? 'Computer wins' : 'Tie game';
+    $('overScore').textContent = `${t0.grand} – ${t1.grand}`;
+    line = `You vs. the ${G.level} computer`;
+    stat = `Record vs ${G.level}: ${r.w}–${r.l}${r.t ? `–${r.t}` : ''}`;
+  }
+  $('overLine').textContent = line; $('overStat').textContent = stat;
+  G.msg = G.mode === 'solo' ? `Final score <b>${t0.grand}</b>.` : `Final: you <b>${t0.grand}</b>, computer <b>${t1.grand}</b>.`;
+  save(); render(); renderStats();
+  setTimeout(() => $('overlay').classList.add('show'), 600);
+}
+
+function undo() {
+  if (!ui.undo || G.mode !== 'solo') return;
+  const wasOver = G.over && G.recorded;
+  if (wasOver) { // take the finished game back out of the stats
+    const t = totals(G.cards[0]), st = saved.stats.solo;
+    st.games--; st.total -= t.grand; st.yahtzees -= G.yz[0]; if (t.bonus) st.bonuses--;
+    if (G.newBest) { st.best = saved.prevBest || 0; }
+  }
+  G = JSON.parse(ui.undo); ui.undo = null; ui.sel = null; ui.just = null; G.msg = 'Undone. Pick a different box.';
+  $('overlay').classList.remove('show');
+  save(); render(); renderStats();
+}
+
+function hint() {
+  if (!humanCanAct() || !rolled()) return;
+  const a = advise(G.cards[0], G.dice, G.rollsLeft, PROFILES.expert);
+  if (a.action === 'roll') {
+    ui.suggest = a.hold; ui.sel = null;
+    G.msg = a.keep.length ? `Hint: hold <b>${a.keep.join(' ')}</b> and roll again.` : 'Hint: reroll all five dice.';
+  } else {
+    ui.suggest = null; ui.sel = a.cat;
+    G.msg = `Hint: score <b>${scoreFor(G.cards[0], a.cat, G.dice)}</b> in ${LABELS[a.cat]}.`;
+  }
+  render();
+}
+
+function startNew(mode, level) {
+  ui.token++; ui.busy = false; ui.sel = null; ui.suggest = null; ui.undo = null; ui.just = null;
+  saved.prevBest = saved.stats.solo.best;
+  G = freshGame(mode || G.mode, level || G.level);
+  $('overlay').classList.remove('show');
+  save(); render();
+}
+
+function gameInProgress() { return G && !G.over && (filledCount(G.cards[0]) > 0 || rolled()); }
+function maybeRestart(mode, level) {
+  if (gameInProgress() && !confirm('Start a new game? The current one will be lost.')) { render(); return; }
+  startNew(mode, level);
+}
+
+function renderStats() {
+  const s = saved.stats, so = s.solo, c = s.cpu;
+  const avg = so.games ? Math.round(so.total / so.games) : '–';
+  const rec = r => `${r.w}–${r.l}${r.t ? '–' + r.t : ''}`;
+  $('stats').innerHTML =
+    `<div class="stat"><b>${so.games}</b><span>Solo games</span></div>` +
+    `<div class="stat"><b>${so.best || '–'}</b><span>Best solo score</span></div>` +
+    `<div class="stat"><b>${avg}</b><span>Average solo score</span></div>` +
+    `<div class="stat"><b>${so.games ? Math.round(100 * so.bonuses / so.games) + '%' : '–'}</b><span>Upper bonus rate</span></div>` +
+    `<div class="stat"><b>${so.yahtzees}</b><span>Solo Yahtzees</span></div>` +
+    `<div class="stat"><b>${rec(c.steady)}</b><span>vs Steady (W–L)</span></div>` +
+    `<div class="stat"><b>${rec(c.expert)}</b><span>vs Expert (W–L)</span></div>`;
+}
+
+/* ----- wiring ----- */
+buildCard(); buildDice();
+$('rollBtn').addEventListener('click', () => {
+  if (G.over) { startNew(); return; }
+  if (ui.sel) confirmScore(); else humanRoll();
+});
+$('hintBtn').addEventListener('click', hint);
+$('undoBtn').addEventListener('click', undo);
+$('newBtn').addEventListener('click', () => maybeRestart());
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+  if (b.dataset.mode === G.mode) return;
+  maybeRestart(b.dataset.mode, G.level);
+}));
+$('level').addEventListener('change', e => {
+  const lv = e.target.value;
+  if (gameInProgress()) {
+    if (!confirm('Switching the computer’s strength starts a new game. Continue?')) { render(); return; }
+  }
+  startNew('cpu', lv);
+});
+$('overClose').addEventListener('click', () => $('overlay').classList.remove('show'));
+$('overAgain').addEventListener('click', () => startNew());
+$('resetStats').addEventListener('click', () => {
+  if (!confirm('Reset all Yahtzee stats?')) return;
+  saved.stats = blankStats(); saved.prevBest = 0; persist(); renderStats();
+});
+document.addEventListener('keydown', e => {
+  if (e.target.closest('select,input,textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === ' ' && document.activeElement && document.activeElement.classList.contains('cell')) return;
+  if (e.key === ' ') { e.preventDefault(); if (!ui.sel) humanRoll(); }
+  else if (/^[1-5]$/.test(e.key)) toggleHold(+e.key - 1);
+  else if (e.key === 'Enter' && ui.sel) { e.preventDefault(); confirmScore(); }
+  else if (e.key === 'h' || e.key === 'H') hint();
+  else if (e.key === 'Escape') { $('overlay').classList.remove('show'); if (ui.sel) { ui.sel = null; render(); } }
+});
+
+/* ----- start ----- */
+if (validGame(saved.game)) {
+  G = saved.game;
+  if (!G.over && G.mode === 'cpu' && G.turn === 1) { render(); cpuTurn(); }
+} else {
+  G = freshGame(saved.settings.mode === 'cpu' ? 'cpu' : 'solo', saved.settings.level === 'expert' ? 'expert' : 'steady');
+}
+saved.prevBest = saved.prevBest ?? saved.stats.solo.best;
+render(); renderStats();
+</script>
+</body>
+</html>
