@@ -30,39 +30,47 @@
   --frame1:#553420; --frame2:#3a2213; --felt:#1f4531; --felt2:#193a29; --ptA:#d9c9a6; --ptB:#7f281f; --tray:#2c1b0f;
   color-scheme:dark}}
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 var(--body);
-  padding:max(10px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(28px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+html{-webkit-text-size-adjust:100%;height:100%}
+/* The page is a full-screen app: everything that matters fits in the viewport,
+   the board takes whatever space is left, and only the side panel scrolls. */
+body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:16px/1.45 var(--body);container-type:inline-size}
 button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
-button:focus-visible,summary:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-.back{display:inline-block;margin:2px 0 6px;font:700 14px system-ui,sans-serif;color:inherit;opacity:.7;text-decoration:none}
-.wrap{max-width:1180px;margin:0 auto}
-header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
-h1{font-family:var(--display);font-weight:800;font-size:clamp(1.45rem,5.5vw,2.2rem);line-height:1.05;margin:0;letter-spacing:.005em}
-.score{margin-left:auto;display:flex;gap:6px;align-items:center;font-size:.95rem}
+button:focus-visible,summary:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.screen{--padx:16px;--gap:8px;--reserve:max(150px,22vh);
+  box-sizing:border-box;height:100vh;height:100dvh;max-width:1180px;margin:0 auto;
+  padding:max(8px,env(safe-area-inset-top)) max(var(--padx),env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(var(--padx),env(safe-area-inset-left));
+  display:grid;gap:var(--gap);grid-template-columns:minmax(0,1fr);
+  /* portrait: board row grows only to its width-limited height; the side panel gets the rest, never less than --reserve */
+  grid-template-rows:auto auto minmax(0,calc((100cqw - 2 * var(--padx)) / 1.307)) auto auto minmax(var(--reserve),1fr);
+  grid-template-areas:"top" "status" "board" "meta" "controls" "side"}
+.top{grid-area:top;display:flex;align-items:center;gap:10px;min-width:0}
+.titleblk{min-width:0;margin-right:auto}
+.back{display:block;font:700 13px system-ui,sans-serif;color:inherit;opacity:.7;text-decoration:none;line-height:1.3;padding:2px 0}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(1.35rem,4.6vw,2rem);line-height:1.05;margin:0;letter-spacing:.005em;white-space:nowrap}
+.score{display:flex;gap:6px;align-items:center;font-size:.95rem}
 .chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 10px;white-space:nowrap}
 .chip b{font-variant-numeric:tabular-nums}
 .iconbtn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--fg);display:grid;place-items:center;font-size:20px;flex:0 0 auto}
-.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
-@media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}}
-.play{min-width:0}
-.status{font-weight:700;min-height:1.5em;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.status{grid-area:status;font-weight:700;min-height:1.5em;margin:0;display:flex;align-items:center;gap:8px;width:100%;max-width:var(--bw,100%);justify-self:center;line-height:1.3}
 .status .who{width:14px;height:14px;border-radius:50%;flex:0 0 auto;border:1.5px solid #0004}
 .who.h{background:#f4ecdb}.who.c{background:#2b211c}
-.boardwrap{width:100%;max-width:calc((100svh - 190px) * 1.307);min-width:min(100%,320px);margin:0 auto}
+.boardbox{grid-area:board;min-height:0;min-width:0;container-type:size;display:flex;align-items:center;justify-content:center}
+.boardwrap{width:100%;width:min(100cqw,100cqh * 1.307)}
 svg#board{display:block;width:100%;height:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none;border-radius:12px;box-shadow:0 8px 24px #0003}
-.meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.92rem;color:var(--muted);margin:8px auto 0;max-width:calc((100svh - 190px) * 1.307)}
+.metabox{grid-area:meta;width:100%;max-width:var(--bw,100%);justify-self:center;min-width:0}
+.meta{display:flex;justify-content:space-between;gap:4px 10px;flex-wrap:wrap;font-size:.92rem;color:var(--muted);line-height:1.3}
 .meta b{color:var(--fg);font-variant-numeric:tabular-nums}
-.winbar{margin:6px auto 0;max-width:calc((100svh - 190px) * 1.307)}
-.wb{height:10px;border-radius:6px;overflow:hidden;background:#2b211c;border:1px solid var(--line);display:flex}
+.winbar{margin-top:5px}
+.wb{height:8px;border-radius:5px;overflow:hidden;background:#2b211c;border:1px solid var(--line);display:flex}
 .wb i{display:block;height:100%;background:#efe5cf;transition:width .4s}
-.wbl{display:flex;justify-content:space-between;font-size:.82rem;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
-.controls{display:flex;gap:10px;margin:12px auto 0;max-width:calc((100svh - 190px) * 1.307);flex-wrap:wrap}
-.btn{flex:1 1 0;min-width:84px;min-height:50px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font-weight:700;font-size:1.02rem;padding:8px 12px}
+.wbl{display:flex;justify-content:space-between;gap:8px;font-size:.82rem;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums;line-height:1.3}
+.controls{grid-area:controls;display:flex;gap:10px;min-height:50px;width:100%;max-width:var(--bw,100%);justify-self:center}
+.btn{flex:1 1 0;min-width:0;min-height:50px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font-weight:700;font-size:1.02rem;padding:8px 10px;white-space:nowrap}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
 .btn:disabled{opacity:.4;cursor:default}
 .btn[hidden]{display:none}
-.side{display:grid;gap:14px;min-width:0}
+.side{grid-area:side;position:relative;display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-radius:14px}
+.side>*{flex:0 0 auto}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
 .card h2{font-family:var(--display);font-size:1.15rem;margin:0 0 6px}
 details.card>summary{font-family:var(--display);font-weight:700;font-size:1.1rem;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:28px}
@@ -110,17 +118,34 @@ dialog h2{font-family:var(--display);margin:0 0 10px}
 .set label span small{display:block;color:var(--muted);font-size:.82rem}
 .set select{font:inherit;padding:8px;border-radius:9px;border:1px solid var(--line);background:var(--soft);color:var(--fg);min-height:40px}
 .set input[type=checkbox]{width:24px;height:24px;accent-color:var(--accent);flex:0 0 auto}
-/* phone held sideways: board on the left, buttons in a column on the right */
+/* landscape (iPad sideways, desktop): board column on the left, feedback/log column on the right */
+@media (orientation:landscape) and (min-width:760px){
+  .screen{--side:clamp(280px,30vw,340px);column-gap:20px;
+    grid-template-columns:minmax(0,1fr) var(--side);
+    /* board row grows only to its width-limited height; a spacer row soaks up any extra */
+    grid-template-rows:auto auto minmax(0,calc((min(100cqw,1180px) - 2 * var(--padx) - 20px - var(--side)) / 1.307)) auto auto 1fr;
+    grid-template-areas:"top top" "status side" "board side" "meta side" "controls side" ". side"}
+}
+/* short landscape (phone sideways): board fills the left; header, status, buttons and feedback stack on the right */
 @media (orientation:landscape) and (max-height:540px){
-  body{padding-top:max(6px,env(safe-area-inset-top))}
-  .back{margin:0 0 2px;font-size:13px}
-  header{margin-bottom:4px} h1{font-size:1.35rem} .iconbtn{width:40px;height:40px}
-  .play{display:grid;grid-template-columns:minmax(0,1fr) 148px;column-gap:12px;align-items:start}
-  .status{grid-column:1 / -1;margin-bottom:4px;font-size:.95rem}
-  .boardwrap{grid-column:1;max-width:calc((100svh - 124px) * 1.307)}
-  .meta,.winbar{grid-column:1;max-width:calc((100svh - 124px) * 1.307);width:100%}
-  .controls{grid-column:2;grid-row:2 / span 3;flex-direction:column;margin:0}
-  .controls .btn{flex:0 0 auto;min-height:46px}
+  .screen{--side:250px;--padx:12px;--gap:6px;column-gap:12px;padding-top:max(6px,env(safe-area-inset-top));padding-bottom:max(6px,env(safe-area-inset-bottom));
+    grid-template-columns:minmax(0,1fr) var(--side);
+    grid-template-rows:auto auto auto minmax(0,1fr) auto;
+    grid-template-areas:"board top" "board status" "board controls" "board side" "meta side"}
+  h1{display:none}
+  .titleblk{margin-right:auto}
+  .back{font-size:12px}
+  .iconbtn{width:38px;height:38px;font-size:18px;border-radius:10px}
+  .chip{padding:3px 8px;font-size:.85rem}
+  .status{font-size:.88rem;align-items:flex-start;max-width:none}
+  .status .who{margin-top:2px}
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-width:none;min-height:42px}
+  .controls .btn{min-height:42px;font-size:.95rem;padding:6px}
+  .metabox{max-width:var(--bw,100%)}
+  .meta{font-size:.82rem}
+  .wbl{font-size:.75rem}
+  .side{gap:8px}
+  .card{padding:10px 12px}
 }
 /* board classes */
 .felt{fill:var(--felt)} .felt2{fill:var(--felt2)} .ptA{fill:var(--ptA)} .ptB{fill:var(--ptB)}
@@ -139,29 +164,27 @@ dialog h2{font-family:var(--display);margin:0 0 10px}
 </style>
 </head>
 <body>
-<div class="wrap">
-<a class="back" href="../">← All games</a>
-<header>
-  <h1>Backgammon</h1>
-  <div class="score" aria-label="Session score">
-    <span class="chip">You <b id="scH">0</b> · CPU <b id="scC">0</b></span>
-  </div>
-  <button class="iconbtn" id="setBtn" aria-label="Settings">⚙︎</button>
-</header>
-<div class="layout">
-  <section class="play">
-    <div class="status" id="status" aria-live="polite"></div>
-    <div class="boardwrap"><svg id="board" viewBox="0 0 596 456" role="img" aria-label="Backgammon board"></svg></div>
+<div class="screen">
+  <header class="top">
+    <div class="titleblk"><a class="back" href="../">← All games</a><h1>Backgammon</h1></div>
+    <div class="score" aria-label="Session score">
+      <span class="chip">You <b id="scH">0</b> · CPU <b id="scC">0</b></span>
+    </div>
+    <button class="iconbtn" id="setBtn" aria-label="Settings">⚙︎</button>
+  </header>
+  <div class="status" id="status" aria-live="polite"></div>
+  <div class="boardbox"><div class="boardwrap"><svg id="board" viewBox="0 0 596 456" role="img" aria-label="Backgammon board"></svg></div></div>
+  <div class="metabox">
     <div class="meta"><span>Pips — You <b id="pipH">167</b> · CPU <b id="pipC">167</b></span><span id="cubeTxt">Cube 1 · centered</span></div>
     <div class="winbar" id="winbar"><div class="wb"><i id="wbFill" style="width:50%"></i></div><div class="wbl"><span id="wbH">You 50%</span><span id="wbC">CPU 50%</span></div></div>
-    <div class="controls">
-      <button class="btn" id="bUndo">Undo</button>
-      <button class="btn" id="bHint">Hint</button>
-      <button class="btn" id="bDouble">Double</button>
-      <button class="btn primary" id="bMain">Roll</button>
-    </div>
-  </section>
-  <aside class="side">
+  </div>
+  <div class="controls">
+    <button class="btn" id="bUndo">Undo</button>
+    <button class="btn" id="bHint">Hint</button>
+    <button class="btn" id="bDouble">Double</button>
+    <button class="btn primary" id="bMain">Roll</button>
+  </div>
+  <aside class="side" id="side">
     <div class="card coach" id="coach" hidden></div>
     <div class="card" id="hints" hidden></div>
     <details class="card" id="logCard" open><summary>Move log</summary><ol class="log" id="log"></ol></details>
@@ -179,7 +202,6 @@ dialog h2{font-family:var(--display);margin:0 0 10px}
       <p><b>Trainer:</b> every move and cube decision is checked by a neural-net evaluator (one-ply lookahead). Errors are measured in equity — points per game at stake 1. Under 0.04 is fine, 0.04–0.08 an inaccuracy, 0.08–0.16 a mistake, 0.16+ a blunder. <b>Hint</b> lists the top plays. The evaluator is strong but not perfect; treat close calls (within ~0.02) as ties.</p>
     </details>
   </aside>
-</div>
 </div>
 <dialog id="setDlg">
   <h2>Settings</h2>
@@ -811,7 +833,14 @@ function unrecordLast() {
   ST.dec--; ST.eqLost -= e.loss;
   if (e.loss >= 0.16) ST.blunders--; else if (e.loss >= 0.08) ST.mistakes--; else if (e.loss >= 0.04) ST.inacc--;
 }
-function showCoach(html, cls) { const c = $("coach"); c.dataset.summary = ""; c.className = "card coach " + (cls || ""); c.innerHTML = html; c.hidden = false; }
+// keep status, pips and buttons exactly as wide as the board drawn above them
+if (window.ResizeObserver) new ResizeObserver(es => {
+  const w = es[0].contentRect.width;
+  if (w > 0) document.documentElement.style.setProperty("--bw", Math.round(w) + "px");
+}).observe(svg);
+// bring a feedback card into view inside the side panel (the page itself never scrolls)
+function reveal(el) { requestAnimationFrame(() => { const sd = $("side"); if (!sd || el.hidden) return; const top = el.offsetTop; if (top < sd.scrollTop || top + Math.min(el.offsetHeight, sd.clientHeight) > sd.scrollTop + sd.clientHeight) sd.scrollTo({ top: Math.max(0, top - 2), behavior: "smooth" }); }); }
+function showCoach(html, cls) { const c = $("coach"); c.dataset.summary = ""; c.className = "card coach " + (cls || ""); c.innerHTML = html; c.hidden = false; reveal(c); }
 function hideCoach() { $("coach").hidden = true; }
 function hideHints() { $("hints").hidden = true; }
 
@@ -1010,7 +1039,7 @@ function showHint() {
     const cd = cubeInfoHuman();
     const rec = cd.shouldDouble && !cd.tooGood ? `Double (${cd.take ? "CPU should take" : "CPU should pass"})` : cd.tooGood ? "Too good to double — play on for a gammon" : "No double — just roll";
     $("hints").innerHTML = `<h2>Cube hint</h2><p><b>${rec}</b></p><p class="small muted">No double ${fmtE(cd.nd)} · Double/take ${fmtE(cd.dt)} · Double/pass ${fmtE(cd.dp)}</p>`;
-    $("hints").hidden = false; return;
+    $("hints").hidden = false; reveal($("hints")); return;
   }
   if (G.phase !== "moving" || G.turn !== 0) return;
   const a = ensureAnalysis();
@@ -1019,7 +1048,7 @@ function showHint() {
   $("hints").innerHTML = `<h2>Top plays</h2><table class="rank">${rows}</table><p class="small muted" style="margin-top:8px">Equity for you at stake 1. Tap Play to set it up, then Done.</p>`;
   $("hints").hidden = false;
   $("hints").querySelectorAll("[data-hint]").forEach(btn => btn.onclick = () => playHint(a[+btn.dataset.hint]));
-  if (innerWidth < 980) $("hints").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  reveal($("hints"));
 }
 async function playHint(r) {
   if (busy || !r || G.phase !== "moving" || G.turn !== 0) return;
