@@ -17,7 +17,7 @@
 :root{
   --bg:#f3f4f5; --surface:#fff; --raised:#fff; --fg:#1c1e21; --muted:#686e75; --faint:#9aa0a6; --line:#e1e3e6; --fill:#e9ebed;
   --primary:#1c1e21; --on-primary:#fff;
-  --gold:#c99128; --gold-soft:#f3e7cc;
+  --gold:#c99128; --gold-soft:#f3e7cc; --tint:#3d9bff; --seg-on:#fff;
   --good:#1d8a4b; --goodbg:#e5f3ea; --ok:#5a7a22; --okbg:#eef3e1; --warn:#a86300; --warnbg:#f8eedd; --bad:#c3312a; --badbg:#f9e5e3;
   --frame1:#6b4329; --frame2:#4a2c19; --felt:#245039; --felt2:#1e4430; --ptA:#eadcbc; --ptB:#922f24; --tray:#3a2414; --lbl:#e9d6b4;
   --font:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -28,7 +28,7 @@
 @media (prefers-color-scheme:dark){:root{
   --bg:#131416; --surface:#1c1d20; --raised:#232428; --fg:#f1f2f4; --muted:#a0a5ac; --faint:#6f747b; --line:#2d2f33; --fill:#2a2c30;
   --primary:#f1f2f4; --on-primary:#131416;
-  --gold:#e3b04f; --gold-soft:#3a3020;
+  --gold:#e3b04f; --gold-soft:#3a3020; --seg-on:#4a4d54;
   --good:#4cc27e; --goodbg:#16271d; --ok:#a6c867; --okbg:#202716; --warn:#f0a23a; --warnbg:#2e2414; --bad:#ff6d62; --badbg:#321918;
   --frame1:#553420; --frame2:#3a2213; --felt:#1f4531; --felt2:#193a29; --ptA:#d9c9a6; --ptB:#7f281f; --tray:#2c1b0f;
   color-scheme:dark}}
@@ -136,8 +136,8 @@ svg#board{display:block;width:100%;height:auto;touch-action:manipulation;user-se
 .opts{display:grid;gap:10px}
 .opt{display:flex;align-items:center;gap:12px;text-align:left;min-height:54px;padding:12px 16px;border-radius:var(--r-md);background:var(--surface);border:1.5px solid var(--line);font-weight:600}
 .opt .k{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700;flex:0 0 auto;background:var(--fill)}
-.opt .k.a{background:var(--gold);color:#1c1408}
-.opt .k.b{background:#f4f1ea;color:#1c1408;border:1.5px dashed #6b5a3e}
+.opt .k.a{background:#3d9bff;color:#0b1220;border:2px solid #120c08}
+.opt .k.b{background:#ff9a3c;color:#0b1220;border:2px dashed #120c08}
 .opt .mv{font-variant-numeric:tabular-nums}
 .opt.sel{border-color:var(--fg)}
 .opt.right{border-color:var(--good);background:var(--goodbg)}
@@ -235,11 +235,13 @@ table.t tr.best td:first-child{color:var(--good);font-weight:700}
 /* board */
 .felt{fill:var(--felt)} .ptA{fill:var(--ptA)} .ptB{fill:var(--ptB)}
 .frm2{fill:var(--frame2)} .tray{fill:var(--tray)} .lbl{fill:var(--lbl);font:600 11px var(--font);opacity:.75}
-.hl{fill:var(--gold);opacity:.4;pointer-events:none}
-.sring{fill:none;stroke:var(--gold);stroke-width:3;pointer-events:none}
+.hl{fill:var(--tint);opacity:.5;pointer-events:none}
+.sring{fill:none;stroke:var(--tint);stroke-width:3;pointer-events:none}
 .sring.thin{stroke-width:2;opacity:.9}
 .mark{fill:none;stroke:#ff6d62;stroke-width:3;pointer-events:none;stroke-dasharray:4 3}
-.ghost{fill:none;stroke:var(--gold);stroke-width:2.5;stroke-dasharray:5 4;pointer-events:none}
+.ghost{fill:none;stroke:var(--tint);stroke-width:2.5;stroke-dasharray:5 4;pointer-events:none}
+.case{stroke:#120c08 !important;stroke-opacity:.85;stroke-width:6.5 !important;stroke-dasharray:none !important;opacity:1 !important}
+.case.thin{stroke-width:5 !important}
 .zone{fill:transparent;cursor:pointer}
 .cnt{font:700 15px var(--font);text-anchor:middle;dominant-baseline:central;pointer-events:none}
 .dielbl{font:700 12px var(--font);fill:#1a120c;text-anchor:middle;dominant-baseline:central;pointer-events:none}
@@ -251,9 +253,13 @@ dialog{border:0;border-radius:var(--r-lg);background:var(--bg);color:var(--fg);p
 dialog::backdrop{background:#0007}
 dialog h2{margin:0 0 14px;font-size:24px;letter-spacing:-.015em}
 .set .row{min-height:56px}
+.set .row.stack{flex-direction:column;align-items:stretch;gap:10px}
+.set .row.stack .seg{display:flex}
+.set .row.stack .seg button{flex:1 1 auto;min-height:34px;padding:7px 4px;font-size:13.5px}
+.focus-sink:focus{outline:none}
 .seg{display:flex;background:var(--fill);border-radius:10px;padding:2px;gap:2px}
 .seg button{padding:7px 10px;border-radius:8px;font-size:14px;font-weight:600;color:var(--muted)}
-.seg button[aria-pressed=true]{background:var(--raised);color:var(--fg);box-shadow:0 1px 3px #0002}
+.seg button[aria-pressed=true]{background:var(--seg-on);color:var(--fg);box-shadow:0 1px 3px #0003}
 
 /* ---------- terms, sheet, strategy, glossary ---------- */
 .term{display:inline;padding:0;margin:0;font:inherit;color:inherit;text-decoration:underline;text-decoration-style:dotted;text-decoration-thickness:1.5px;text-underline-offset:3px;text-decoration-color:color-mix(in srgb,var(--fg) 45%,transparent);cursor:help;border-radius:3px}
@@ -321,13 +327,13 @@ dialog.sheet::backdrop{background:#0006}
 </section>
 
 <dialog id="setDlg">
-  <h2>Settings</h2>
+  <h2 class="focus-sink" tabindex="-1" autofocus>Settings</h2>
   <div class="group set" id="setBody"></div>
   <div class="btns"><button class="btn primary" id="setDone">Done</button></div>
 </dialog>
 <dialog id="sheet" class="sheet" aria-label="Explainer">
   <div class="shtop"><button class="xbtn" id="shBack" aria-label="Back" style="visibility:hidden"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"/></svg></button><span class="grab" aria-hidden="true"></span><button class="xbtn" id="shClose" aria-label="Close"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l10 10M13 3L3 13"/></svg></button></div>
-  <div class="shbody" id="shBody"></div>
+  <div class="shbody focus-sink" id="shBody" tabindex="-1" autofocus></div>
 </dialog>
 <script>
 var BG = (function () {
@@ -1586,12 +1592,23 @@ function groupMoves(steps) {
   });
   return mv;
 }
-const ARW = { a: { c: "#e2b04a", dash: "" }, best: { c: "#e2b04a", dash: "" }, b: { c: "#f6f1e6", dash: "9 7" }, you: { c: "#f6f1e6", dash: "9 7" } };
+// Best play: solid blue. Your play / option B: dashed orange. Blue and orange stay distinct for
+// colour-blind players, and a dark outline keeps both readable over cream, red and green.
+const ARW = { a: { c: "#3d9bff", dash: "" }, best: { c: "#3d9bff", dash: "" }, b: { c: "#ff9a3c", dash: "10 7" }, you: { c: "#ff9a3c", dash: "10 7" } };
+const ARWC = { casing: "#120c08", co: 0.9, cw: 9, core: 5 };
 function arrowsSvg() {
   let s = "";
-  V.arrows.forEach(a => {
-    const st = ARW[a.style];
-    groupMoves(a.steps).forEach((m, i, all) => {
+  // a move both plays share is drawn once, in neutral grey, so it can't hide the other arrow
+  const sets = V.arrows.map(a => groupMoves(a.steps)), mk = m => m.from + ">" + m.to;
+  const shared = sets.length === 2 ? new Set(sets[0].map(mk).filter(k => sets[1].some(m => mk(m) === k))) : new Set();
+  const list = [];
+  V.arrows.forEach((a, ai) => {
+    const own = sets[ai].filter(m => !shared.has(mk(m)));
+    own.forEach((m, i) => list.push({ m, st: ARW[a.style], label: i === 0 ? a.label : null }));
+  });
+  if (shared.size) sets[0].filter(m => shared.has(mk(m))).forEach(m => list.unshift({ m, st: { c: "#d9d4ca", dash: "" }, label: null }));
+  list.forEach(({ m, st, label }) => {
+    {
       const fl = locOf(0, m.from), tl = locOf(0, m.to);
       const [x1, y1] = anchorXY(fl, false), [x2, y2] = anchorXY(tl, true);
       const bothBot = (fl === "bar" || fl <= 12) && (tl === "off" || tl <= 12), bothTop = typeof fl === "number" && fl > 12 && typeof tl === "number" && tl > 12;
@@ -1600,14 +1617,18 @@ function arrowsSvg() {
       else if (bothTop) cy = Math.max(y1, y2) + 40 + Math.abs(x2 - x1) * 0.15;
       const ang = Math.atan2(y2 - cy, x2 - cx), hl = 13;
       const p1 = [x2 - hl * Math.cos(ang - 0.45), y2 - hl * Math.sin(ang - 0.45)], p2 = [x2 - hl * Math.cos(ang + 0.45), y2 - hl * Math.sin(ang + 0.45)];
-      s += `<path class="arw" d="M${x1},${y1} Q${cx},${cy} ${x2},${y2}" stroke="#0007" stroke-width="7" stroke-dasharray="${st.dash}"/>`;
-      s += `<path class="arw" d="M${x1},${y1} Q${cx},${cy} ${x2},${y2}" stroke="${st.c}" stroke-dasharray="${st.dash}"/>`;
-      s += `<path d="M${p1[0]},${p1[1]} L${x2},${y2} L${p2[0]},${p2[1]}" fill="none" stroke="${st.c}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
-      if (a.label && i === 0) s += `<circle cx="${x1}" cy="${y1}" r="11" fill="${st.c}" stroke="#0008"/><text class="arwlbl" x="${x1}" y="${y1 + 0.5}" fill="#1c1408">${a.label}</text>`;
-    });
+      const d = `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`, hd = `M${p1[0]},${p1[1]} L${x2},${y2} L${p2[0]},${p2[1]}`;
+      // dark casing first (solid even when the line is dashed, so dashes read as gaps in the colour)
+      s += `<path class="arw" d="${d}" stroke="${ARWC.casing}" stroke-opacity="${ARWC.co}" stroke-width="${ARWC.cw}"/>`;
+      s += `<path d="${hd}" fill="none" stroke="${ARWC.casing}" stroke-opacity="${ARWC.co}" stroke-width="${ARWC.cw}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      s += `<path class="arw" d="${d}" stroke="${st.c}" stroke-width="${ARWC.core}" stroke-dasharray="${st.dash}"/>`;
+      s += `<path d="${hd}" fill="none" stroke="${st.c}" stroke-width="${ARWC.core}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      if (label) s += `<circle cx="${x1}" cy="${y1}" r="12" fill="${st.c}" stroke="${ARWC.casing}" stroke-width="2.5"/><text class="arwlbl" x="${x1}" y="${y1 + 0.5}" fill="#0b1220">${label}</text>`;
+    }
   });
   return s;
 }
+const ringSvg = (x, y, r, cls) => `<circle class="case ${cls}" cx="${x}" cy="${y}" r="${r}"/><circle class="${cls}" cx="${x}" cy="${y}" r="${r}"/>`;
 function render() {
   const b = V.b;
   let s = `<defs><radialGradient id="gH" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#fffaf0"/><stop offset=".7" stop-color="#efe5cf"/><stop offset="1" stop-color="#d4c4a2"/></radialGradient>
@@ -1638,21 +1659,21 @@ function render() {
     const off = BG.offCount(b, side), dOff = V.hideTop && V.hideTop.side === side && V.hideTop.loc === "off" ? off - 1 : off;
     for (let n = 0; n < dOff; n++) { const [x, y] = stackXY(side, "off", n, off); s += `<rect x="${x - TRAYW / 2 + 5}" y="${y - (side === 0 ? 7 : 1)}" width="${TRAYW - 10}" height="8" rx="2" fill="${side ? "#2e231d" : "#ede2ca"}" stroke="${side ? "#0b0806" : "#a89676"}"/>`; }
   }
-  V.marks.forEach(p => { const c = b[p]; if (!c) return; const [x, y] = stackXY(0, p, c - 1, c); s += `<circle class="mark" cx="${x}" cy="${y}" r="${RAD + 2}"/>`; });
-  V.srcRing.forEach(p => { const [x, y] = topXY(0, p === 25 ? "bar" : p); s += `<circle class="sring" cx="${x}" cy="${y}" r="${RAD + 2}"/>`; });
+  V.marks.forEach(p => { const c = b[p]; if (!c) return; const [x, y] = stackXY(0, p, c - 1, c); s += ringSvg(x, y, RAD + 2, "mark"); });
+  V.srcRing.forEach(p => { const [x, y] = topXY(0, p === 25 ? "bar" : p); s += ringSvg(x, y, RAD + 2, "sring"); });
   if (V.input) {
-    if (V.sel != null) { const [x, y0] = topXY(0, V.sel === 25 ? "bar" : V.sel); const y = V.sel === 25 ? y0 : y0 + (V.sel <= 12 ? -6 : 6); s += `<circle class="sring" cx="${x}" cy="${y}" r="${RAD + 1}"/>`; }
-    else if (!V.srcRing.length) legalSources().forEach(src => { const [x, y] = topXY(0, src === 25 ? "bar" : src); s += `<circle class="sring thin" cx="${x}" cy="${y}" r="${RAD + 1}"/>`; });
+    if (V.sel != null) { const [x, y0] = topXY(0, V.sel === 25 ? "bar" : V.sel); const y = V.sel === 25 ? y0 : y0 + (V.sel <= 12 ? -6 : 6); s += ringSvg(x, y, RAD + 1, "sring"); }
+    else if (!V.srcRing.length) legalSources().forEach(src => { const [x, y] = topXY(0, src === 25 ? "bar" : src); s += ringSvg(x, y, RAD + 1, "sring thin"); });
     V.dests.forEach((st, d) => {
       if (d === 0) return;
       const c = countAt(0, d), oppHere = V.b[O + 25 - d] === 1, [x, y] = stackXY(0, d, oppHere ? 0 : c, (oppHere ? 0 : c) + 1);
-      s += `<circle class="ghost" cx="${x}" cy="${y}" r="${RAD - 2}"/><circle cx="${x}" cy="${y}" r="9" fill="var(--gold)"/><text class="dielbl" x="${x}" y="${y}">${st.reduce((a, q) => a + q[3], 0)}</text>`;
+      s += ringSvg(x, y, RAD - 2, "ghost") + `<circle cx="${x}" cy="${y}" r="9.5" fill="var(--tint)" stroke="#120c08" stroke-width="2"/><text class="dielbl" x="${x}" y="${y}">${st.reduce((a, q) => a + q[3], 0)}</text>`;
     });
   }
   s += arrowsSvg();
   if (V.cube) {
     const cx = TRX + TRAYW / 2, cy = V.cube.at === "opp" ? MIDY - 40 : V.cube.at === "me" ? MIDY + 40 : MIDY;
-    s += `<g><rect x="${cx - 18}" y="${cy - 18}" width="36" height="36" rx="6" fill="#f6efe0" stroke="${V.cube.offer ? "var(--gold)" : "#3a2a1d"}" stroke-width="${V.cube.offer ? 3 : 1.5}"/><text x="${cx}" y="${cy + 1}" text-anchor="middle" dominant-baseline="central" style="font:700 18px var(--font);fill:#2a1d15">${V.cube.v}</text></g>`;
+    s += `<g><rect x="${cx - 18}" y="${cy - 18}" width="36" height="36" rx="6" fill="#f6efe0" stroke="${V.cube.offer ? "var(--tint)" : "#3a2a1d"}" stroke-width="${V.cube.offer ? 3 : 1.5}"/><text x="${cx}" y="${cy + 1}" text-anchor="middle" dominant-baseline="central" style="font:700 18px var(--font);fill:#2a1d15">${V.cube.v}</text></g>`;
   }
   if (V.dice) {
     const d = V.dice, cx = RXs + 3 * PW, sz = d.length > 2 ? 28 : 34, gap = 8, w = d.length * sz + (d.length - 1) * gap;
@@ -1914,7 +1935,7 @@ function moveItem(e, worked) {
       if (!alt) alt = a.r.find(x => x.loss >= (a.unit === "rolls" ? 0.03 : 0.04)) || a.r[1];
       const pair = shuffle([a.r[0], alt]);
       V.arrows = [{ steps: pair[0].steps, style: "a", label: "A" }, { steps: pair[1].steps, style: "b", label: "B" }]; render();
-      setPanel(`<h2 class="prompt">Which play is better?</h2><p class="psub">You rolled ${diceTxt(d)}. Gold is A, dashed is B.</p>
+      setPanel(`<h2 class="prompt">Which play is better?</h2><p class="psub">You rolled ${diceTxt(d)}. Blue is A, orange is B.</p>
         <div class="opts">${pair.map((x, i) => `<button class="opt" data-i="${i}"><span class="k ${i ? "b" : "a"}">${i ? "B" : "A"}</span><span class="mv">${esc(moveName(x.steps))}</span></button>`).join("")}</div>`);
       panel.querySelectorAll(".opt").forEach(btn => btn.onclick = () => { const x = pair[+btn.dataset.i]; answered(x, x === a.r[0] ? 0 : x.loss); });
     }, 30);
@@ -2418,7 +2439,7 @@ function diagramSvg(key) {
   D.pts.forEach((pt, i) => {
     const [lab, me, them, flag] = pt, x = PAD + i * W;
     s += `<polygon points="${x + 1},${base} ${x + W - 1},${base} ${x + W / 2},${base - 112}" fill="var(${i % 2 ? "--ptA" : "--ptB"})"/>`;
-    if (flag === "hl") s += `<polygon points="${x + 2.5},${base - 1} ${x + W - 2.5},${base - 1} ${x + W / 2},${base - 108}" fill="none" stroke="var(--gold)" stroke-width="3" stroke-linejoin="round"/>`;
+    if (flag === "hl") s += `<polygon points="${x + 2.5},${base - 1} ${x + W - 2.5},${base - 1} ${x + W / 2},${base - 108}" fill="none" stroke="var(--tint)" stroke-width="3" stroke-linejoin="round"/>`;
     s += `<text x="${x + W / 2}" y="${base + 15}" text-anchor="middle" class="dlbl">${lab}</text>`;
     const cnt = (me || 0) + (them || 0); let y = base - r - 1;
     for (let k = 0; k < cnt; k++) {
@@ -2426,11 +2447,11 @@ function diagramSvg(key) {
       s += `<circle cx="${x + W / 2}" cy="${cy}" r="${r}" fill="${mine ? "#efe5cf" : "#2e231d"}" stroke="${mine ? "#a89676" : "#0b0806"}" stroke-width="1.5"/>`;
       y = cy;
     }
-    if (flag === "ring" && cnt) s += `<circle cx="${x + W / 2}" cy="${y}" r="${r + 3}" fill="none" stroke="var(--gold)" stroke-width="2.5"/>`;
+    if (flag === "ring" && cnt) s += `<circle cx="${x + W / 2}" cy="${y}" r="${r + 3}" fill="none" stroke="#120c08" stroke-opacity=".85" stroke-width="6"/><circle cx="${x + W / 2}" cy="${y}" r="${r + 3}" fill="none" stroke="var(--tint)" stroke-width="3"/>`;
     tops.push([x + W / 2, cnt ? y - r - 2 : base - 30]);
   });
   (D.arrows || []).forEach(([f, t, lab, side, blocked]) => {
-    const c = side === "me" ? "#e2b04a" : "#ff8070";
+    const c = side === "me" ? "#3d9bff" : "#ff6a5c";
     const bx = tops[f][0], by = tops[f][1] - 10, x1 = bx, y1 = by - 12, [x2, y2] = tops[t];
     // the curve's peak must clear every stack and badge it passes over
     let A = Math.min(y1, y2) - 14 - Math.abs(f - t) * 4;
@@ -2438,10 +2459,11 @@ function diagramSvg(key) {
     A = Math.max(TOPP + 8, A);
     const cy = 2 * A - (y1 + y2) / 2, mx = (x1 + x2) / 2;
     const ang = Math.atan2(y2 - cy, x2 - mx), hl = 9;
-    s += `<path d="M${x1},${y1} Q${mx},${cy} ${x2},${y2}" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" ${blocked ? 'stroke-dasharray="5 5"' : ""}/>`;
-    if (blocked) s += `<path d="M${x2 - 7},${y2 - 7} L${x2 + 7},${y2 + 7} M${x2 + 7},${y2 - 7} L${x2 - 7},${y2 + 7}" stroke="${c}" stroke-width="3.5" stroke-linecap="round"/>`;
-    else s += `<path d="M${x2 - hl * Math.cos(ang - .5)},${y2 - hl * Math.sin(ang - .5)} L${x2},${y2} L${x2 - hl * Math.cos(ang + .5)},${y2 - hl * Math.sin(ang + .5)}" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
-    s += `<circle cx="${bx}" cy="${by}" r="11" fill="${c}" stroke="#0005"/><text x="${bx}" y="${by + .5}" text-anchor="middle" dominant-baseline="central" class="dnum">${lab}</text>`;
+    s += `<path d="M${x1},${y1} Q${mx},${cy} ${x2},${y2}" fill="none" stroke="#120c08" stroke-opacity=".85" stroke-width="7" stroke-linecap="round"/>`;
+    s += `<path d="M${x1},${y1} Q${mx},${cy} ${x2},${y2}" fill="none" stroke="${c}" stroke-width="3.5" stroke-linecap="round" ${blocked ? 'stroke-dasharray="6 6"' : ""}/>`;
+    const tip = blocked ? `M${x2 - 7},${y2 - 7} L${x2 + 7},${y2 + 7} M${x2 + 7},${y2 - 7} L${x2 - 7},${y2 + 7}` : `M${x2 - hl * Math.cos(ang - .5)},${y2 - hl * Math.sin(ang - .5)} L${x2},${y2} L${x2 - hl * Math.cos(ang + .5)},${y2 - hl * Math.sin(ang + .5)}`;
+    s += `<path d="${tip}" fill="none" stroke="#120c08" stroke-opacity=".85" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/><path d="${tip}" fill="none" stroke="${c}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    s += `<circle cx="${bx}" cy="${by}" r="11" fill="${c}" stroke="#120c08" stroke-width="2"/><text x="${bx}" y="${by + .5}" text-anchor="middle" dominant-baseline="central" class="dnum">${lab}</text>`;
   });
   return `<figure class="diafig">${s}</svg><figcaption>${lk(D.cap)}</figcaption></figure>`;
 }
@@ -2685,10 +2707,10 @@ function viewProgress() {
 function openSettings() {
   const seg = (key, opts) => `<div class="seg" data-key="${key}">${opts.map(([v, l]) => `<button data-v="${v}" aria-pressed="${String(S.cfg[key]) === String(v)}">${l}</button>`).join("")}</div>`;
   $("setBody").innerHTML = `
-    <div class="row"><span class="tx"><span class="tt">Session length</span><br><span class="ds">Positions per daily session</span></span>${seg("len", [[6, "6"], [10, "10"], [16, "16"]])}</div>
-    <div class="row"><span class="tx"><span class="tt">Level</span><br><span class="ds">Auto unlocks topics as you improve. Beginner restarts the foundation lessons.</span></span>${seg("level", [["auto", "Auto"], ["beg", "Beg"], ["int", "Int"], ["adv", "Adv"]])}</div>
-    <div class="row"><span class="tx"><span class="tt">Challenge</span><br><span class="ds">How often you should get it right</span></span>${seg("target", [["comf", "Easier"], ["bal", "Balanced"], ["str", "Harder"]])}</div>
-    <div class="row"><span class="tx"><span class="tt">Hints</span><br><span class="ds">Hint button on checker plays</span></span>${seg("hints", [[true, "On"], [false, "Off"]])}</div>
+    <div class="row stack"><span class="tx"><span class="tt">Session length</span><br><span class="ds">Positions per daily session</span></span>${seg("len", [[6, "6"], [10, "10"], [16, "16"]])}</div>
+    <div class="row stack"><span class="tx"><span class="tt">Level</span><br><span class="ds">Auto unlocks topics as you improve. Beginner restarts the foundation lessons.</span></span>${seg("level", [["auto", "Auto"], ["beg", "Beginner"], ["int", "Intermediate"], ["adv", "Advanced"]])}</div>
+    <div class="row stack"><span class="tx"><span class="tt">Challenge</span><br><span class="ds">How often you should get it right</span></span>${seg("target", [["comf", "Easier"], ["bal", "Balanced"], ["str", "Harder"]])}</div>
+    <div class="row stack"><span class="tx"><span class="tt">Hints</span><br><span class="ds">Hint button on checker plays</span></span>${seg("hints", [[true, "On"], [false, "Off"]])}</div>
     <button class="row" id="sPlace"><span class="tx"><span class="tt">Retake placement</span></span><span class="chev">${NEXTICON}</span></button>
     <button class="row" id="sReset"><span class="tx"><span class="tt" style="color:var(--bad)">Reset all progress</span></span></button>`;
   $("setBody").querySelectorAll(".seg").forEach(sg => sg.querySelectorAll("button").forEach(b => b.onclick = () => {
