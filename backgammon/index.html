@@ -94,13 +94,14 @@ dialog.sheet[open]{animation:sheet-in var(--dur) var(--ease)}
 :root{--warn:#c25e00}
 @media (prefers-color-scheme:dark){:root{--warn:#ff9f0a}}
 .game{width:var(--bw,100%);display:flex;flex-direction:column;gap:var(--s2)}
-.game.side{display:grid;width:auto;grid-template-columns:var(--bw) 260px;grid-template-rows:auto auto 1fr auto;column-gap:20px;row-gap:var(--s2);
-  grid-template-areas:"board cpu" "board you" "board log" "board coach"}
+.game.side{display:grid;width:auto;height:var(--bh,auto);grid-template-columns:var(--bw) 260px;grid-template-rows:auto auto auto minmax(0,1fr);column-gap:20px;row-gap:var(--s2);
+  grid-template-areas:"board cpu" "board you" "board coach" "board log"}
 .game.side .surface{grid-area:board;align-self:start}
 .game.side .p-cpu{grid-area:cpu}.game.side .p-you{grid-area:you}
 .game.side .coach{grid-area:coach}
 .game.side .logpane{grid-area:log;display:flex}
 .game.side.compact .logpane{display:none}
+.game.side.compact{height:auto}
 .game.side.compact .player{min-height:46px;padding:4px var(--s3)}
 .game.side.compact .coach{min-height:56px}
 .game.side.compact .coach .cl2{white-space:nowrap}
@@ -186,6 +187,10 @@ dialog.sheet[open]{animation:sheet-in var(--dur) var(--ease)}
 .sub-result{text-align:center;color:var(--text-2);margin:-4px 0 var(--s4)}
 .seg.full{display:flex;margin-bottom:var(--s3)}
 .seg.full button{flex:1}
+.preview{margin-top:var(--s4)}
+.preview summary{cursor:pointer;color:var(--accent);font-weight:600;min-height:44px;display:flex;align-items:center}
+.preview pre{white-space:pre-wrap;word-break:break-word;font:12px/1.45 ui-monospace,"SF Mono",Menlo,Consolas,monospace;background:var(--surface-2);border-radius:var(--r-sm);padding:var(--s3);max-height:40dvh;overflow:auto;margin:0}
+#bExport{margin-top:var(--s4)}
 .rules ul{padding-left:1.2em;margin:var(--s2) 0}
 .rules li{margin:4px 0}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -239,11 +244,11 @@ dialog.sheet[open]{animation:sheet-in var(--dur) var(--ease)}
         <span class="fig score"><b id="scH">0</b><span>Pts</span></span>
       </span>
     </div>
-    <div class="logpane" id="logpane"><h3>Moves</h3><ol class="loglist" id="logSide"></ol></div>
     <button class="coach" id="coach" type="button" aria-live="polite">
       <span class="cbody"><span class="cl1" id="coachL1"></span><span class="cl2" id="coachL2"></span></span>
       <svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
     </button>
+    <div class="logpane" id="logpane"><h3>Moves</h3><ol class="loglist" id="logSide"></ol></div>
   </div>
 </main>
 <nav class="actions" id="actions">
@@ -296,6 +301,7 @@ dialog.sheet[open]{animation:sheet-in var(--dur) var(--ease)}
     <div class="seg full" role="group" aria-label="Stats view"><button aria-pressed="true" data-tab="game">This game</button><button aria-pressed="false" data-tab="all">All time</button></div>
     <div id="tabGame">
       <div id="gameReport"></div>
+      <button class="btn btn-primary wide" id="bExport">Review with Claude</button>
       <h3>Moves</h3>
       <ol class="loglist" id="logSheet"></ol>
     </div>
@@ -338,6 +344,17 @@ dialog.sheet[open]{animation:sheet-in var(--dur) var(--ease)}
 <dialog class="sheet" id="over">
   <div class="sheet-hd"><h2>Game over</h2><button class="btn btn-plain" data-close>Done</button></div>
   <div class="sheet-bd" id="overBody"></div>
+</dialog>
+
+<dialog class="sheet" id="export">
+  <div class="sheet-hd"><h2>Review with Claude</h2><button class="btn btn-plain" data-close>Done</button></div>
+  <div class="sheet-bd">
+    <p>This packages the whole game — every roll, move, cube action, the position before each of your decisions, and the coach's evaluations — with a prompt asking Claude to review it as a grandmaster and teacher.</p>
+    <p class="note" style="margin-top:0">Copy it, then paste it into a new chat in the Claude app. On a phone, Share can send it straight there.</p>
+    <button class="btn btn-primary wide" id="exCopy" disabled>Preparing…</button>
+    <div class="btn-row" style="margin-top:var(--s2)"><button class="btn btn-tinted" id="exShare" hidden>Share…</button><button class="btn btn-tinted" id="exDown" disabled>Download .txt</button></div>
+    <details class="preview"><summary>Preview</summary><pre id="exText"></pre></details>
+  </div>
 </dialog>
 
 <dialog class="sheet" id="confirm">
@@ -725,11 +742,11 @@ let coachState = null;     // last coach verdict
 let rollId = 0;            // increments on each fresh roll (drives the dice tumble)
 
 function freshGame() {
-  return { board: BG.startPos(), turn: 0, phase: "opening", dice: null, cube: 1, owner: 0, log: [], errors: [], turnStart: null, steps: [], over: null, moveNo: 0 };
+  return { board: BG.startPos(), turn: 0, phase: "opening", dice: null, cube: 1, owner: 0, log: [], errors: [], hist: [], turnStart: null, steps: [], over: null, moveNo: 0 };
 }
 function serialize() {
   return { board: Array.from(G.board), turn: G.turn, phase: G.phase, dice: G.dice, cube: G.cube, owner: G.owner,
-    log: G.log.slice(-200), errors: G.errors, turnStart: G.turnStart ? Array.from(G.turnStart) : null, over: G.over, moveNo: G.moveNo };
+    log: G.log.slice(-200), errors: G.errors, hist: G.hist, turnStart: G.turnStart ? Array.from(G.turnStart) : null, over: G.over, moveNo: G.moveNo };
 }
 function restore(o) {
   const g = freshGame();
@@ -737,6 +754,7 @@ function restore(o) {
   g.board = Int8Array.from(o.board);
   g.turnStart = o.turnStart ? Int8Array.from(o.turnStart) : null;
   g.steps = [];
+  if (!Array.isArray(g.hist)) g.hist = [];
   return g;
 }
 const sideB = side => side === 0 ? G.board : BG.flip(G.board);
@@ -753,6 +771,8 @@ const pct = x => Math.round(x * 100) + "%";
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const haptic = () => { try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) {} };
 const $ = id => document.getElementById(id);
+const hpush = h => { G.hist.push(Object.assign({ cube: G.cube, owner: G.owner }, h)); };
+const cdOut = cd => ({ nd: +cd.nd.toFixed(3), dt: +cd.dt.toFixed(3), dp: +cd.dp.toFixed(3), take: cd.take, shouldDouble: cd.shouldDouble, tooGood: cd.tooGood });
 
 /* ---------- board geometry (SVG units) ---------- */
 const BW = 638, BH = 492, F = 12, FT = 18, PW = 44, BARW = 36, GAP = 8, TRAYW = 42, R = 20;
@@ -1202,6 +1222,7 @@ async function openingRoll() {
   const hFirst = h > c;
   setStatus(`You rolled ${h}, CPU ${c} — ${hFirst ? "you go first" : "CPU goes first"}`);
   addLog({ note: `Opening roll: you ${h}, CPU ${c}` });
+  hpush({ t: "open", me: h, cpu: c });
   await sleep(1100);
   G.opening = null;
   if (hFirst) { G.diceShow = [{ v: h, used: false }, { v: c, used: false }]; G.diceSide = 0; rollId++; startHumanMove([h, c]); }
@@ -1223,9 +1244,10 @@ function humanTurnStart() {
 const cubeInfoHuman = () => BG.cubeDecision(BG.evalPre1(NET, G.board), G.owner);
 async function humanRoll() {
   if (busy || G.phase !== "preroll") return;
-  if (S.trainer && canDouble(0)) {
+  if (canDouble(0)) {
     const cd = cubeInfoHuman(), best = Math.min(cd.dt, cd.dp);
-    if (cd.shouldDouble && !cd.tooGood) {
+    if (cd.shouldDouble && !cd.tooGood && best - cd.nd >= 0.01) hpush({ t: "cube", who: "me", act: "no double", before: Array.from(G.board), cd: cdOut(cd), loss: +(best - cd.nd).toFixed(3) });
+    if (S.trainer && cd.shouldDouble && !cd.tooGood) {
       const loss = best - cd.nd;
       if (loss >= 0.01) {
         recordError("cube", loss); const g = grade(loss);
@@ -1261,6 +1283,7 @@ function startHumanMove(d) {
   if (gm.maxDepth === 0) {
     setStatus(`You rolled ${diceTxt(d)} — no legal moves`); setButtons({}); G.phase = "cpu";
     addLog({ who: "You", dice: diceTxt(d), mv: "(no move)" });
+    hpush({ t: "move", who: "me", dice: d.slice(), mv: "(no move)", before: Array.from(G.board), forced: true });
     G.moveNo++;
     later(() => cpuTurnStart(), 1500);
     return;
@@ -1320,7 +1343,7 @@ async function commitHuman(forced) {
   const d = G.dice, mv = BG.notation(G.steps), finalB = new Int8Array(G.board);
   sel = null; dests = new Map();
   const entry = { who: "You", dice: diceTxt(d), mv };
-  let fb = null;
+  let fb = null, ev = null;
   if (S.trainer && !forced && G.nPlays > 1) {
     const a = ensureAnalysis(), k = BG.key(finalB);
     let idx = a.findIndex(r => BG.key(r.pos) === k);
@@ -1328,6 +1351,7 @@ async function commitHuman(forced) {
     if (idx < 0) idx = a.length;
     const myEq = mine && mine.ply === 1 ? mine.eq : BG.equity(BG.evalAfter1(NET, finalB));
     const loss = Math.max(0, a[0].eq - myEq), g = grade(loss);
+    ev = evRecord(a, idx, myEq, loss);
     recordError("move", loss);
     entry.tag = g.tag; entry.cls = g.c;
     const inTop = a.slice(0, 5).some(r => BG.key(r.pos) === k);
@@ -1339,6 +1363,7 @@ async function commitHuman(forced) {
       detail: `<p class="rec"><span class="mv">${diceTxt(d)}: ${mv}</span> <span class="pill ${g.c}">${g.t}</span></p>
         <p>${loss < 0.001 ? "You found the best play." : `Best was <b class="mv">${best}</b>. You gave up ${loss.toFixed(3)} equity.`}</p>${rankTable(a, k, extra)}<p class="note">Equity for you at stake 1. Your play is highlighted.</p>` } };
   }
+  hpush({ t: "move", who: "me", dice: d.slice(), mv, before: Array.from(G.turnStart), after: Array.from(finalB), forced: forced || G.nPlays <= 1, hint: !!G.hintUsed, ev });
   G.hintUsed = false;
   addLog(entry);
   lastMove = null; G.diceShow = null; G.moveNo++;
@@ -1357,6 +1382,7 @@ async function commitHuman(forced) {
 }
 function retryMove() {
   pending = null; unrecordLast(); G.log.pop(); renderLog(); G.moveNo--;
+  const lh = G.hist[G.hist.length - 1]; if (lh && lh.t === "move" && lh.who === "me") G.hist.pop();
   G.board = new Int8Array(G.turnStart); G.steps = []; G.turn = 0; G.phase = "moving";
   G.diceShow = (G.dice[0] === G.dice[1] ? [G.dice[0], G.dice[0], G.dice[0], G.dice[0]] : G.dice).map(v => ({ v, used: false }));
   G.diceSide = 0;
@@ -1365,6 +1391,7 @@ function retryMove() {
 async function humanDouble() {
   if (busy || G.phase !== "preroll" || !canDouble(0)) return;
   const cd = cubeInfoHuman();
+  hpush({ t: "cube", who: "me", act: "double", to: G.cube * 2, before: Array.from(G.board), cd: cdOut(cd), loss: +Math.max(0, cd.nd - Math.min(cd.dt, cd.dp)).toFixed(3) });
   if (S.trainer) {
     const loss = Math.max(0, cd.nd - Math.min(cd.dt, cd.dp)), g = grade(loss), t = loss < 0.001 ? "Correct" : g.t;
     recordError("cube", loss);
@@ -1378,6 +1405,7 @@ async function humanDouble() {
   let take = cd.take;
   if (S.level === "beginner") { const p = BG.evalPre(NET, G.board); take = p[0] < 0.78; }
   busy = false;
+  hpush({ t: "cube", who: "cpu", act: take ? "take" : "pass" });
   if (!take) { addLog({ who: "CPU", dice: "", mv: "Pass" }); toast("CPU passes"); return gameOver(0, 1, true); }
   addLog({ who: "CPU", dice: "", mv: "Take" });
   G.cube *= 2; G.owner = -1; render();
@@ -1405,7 +1433,7 @@ async function cpuTurnStart() {
 }
 function cpuOffers(noLog) {
   G.phase = "offered"; save();
-  if (!noLog) addLog({ who: "CPU", dice: "", mv: `Double to ${G.cube * 2}` });
+  if (!noLog) { addLog({ who: "CPU", dice: "", mv: `Double to ${G.cube * 2}` }); hpush({ t: "cube", who: "cpu", act: "double", to: G.cube * 2, before: Array.from(G.board) }); }
   render();
   setStatus(`CPU doubles to ${G.cube * 2} — take or pass?`);
   setButtons({ main: "Take", onMain: () => humanAnswer(true), alt: "Pass", onAlt: () => humanAnswer(false), hint: true });
@@ -1413,6 +1441,8 @@ function cpuOffers(noLog) {
 async function humanAnswer(take) {
   if (G.phase !== "offered") return;
   const pc = BG.evalPre1(NET, BG.flip(G.board)), cd = BG.cubeDecision(pc, G.owner === -1 ? 1 : G.owner === 1 ? -1 : 0);
+  hpush({ t: "cube", who: "me", act: take ? "take" : "pass", before: Array.from(G.board), takeEq: +(-cd.dt).toFixed(3), passEq: +(-cd.dp).toFixed(3), right: cd.take ? "take" : "pass",
+    loss: +((take ? "take" : "pass") === (cd.take ? "take" : "pass") ? 0 : Math.abs(cd.dt - cd.dp)).toFixed(3), win: +(1 - pc[0]).toFixed(3), gl: +pc[1].toFixed(3) });
   if (S.trainer) {
     const right = cd.take ? "take" : "pass", mine = take ? "take" : "pass";
     const loss = mine === right ? 0 : Math.abs(cd.dt - cd.dp), g = grade(loss), t = loss < 0.001 ? "Correct" : g.t;
@@ -1447,6 +1477,7 @@ async function cpuMove(d) {
   const b = BG.flip(G.board), gm = BG.genMoves(b, d[0], d[1]);
   if (gm.maxDepth === 0) {
     addLog({ who: "CPU", dice: diceTxt(d), mv: "(no move)" });
+    hpush({ t: "move", who: "cpu", dice: d.slice(), mv: "(no move)" });
     setStatus(`CPU rolled ${diceTxt(d)} — no legal moves`);
     await sleep(1200); busy = false; G.moveNo++; return humanTurnStart();
   }
@@ -1462,6 +1493,7 @@ async function cpuMove(d) {
   }
   lastMove = lm;
   const mv = BG.notation(pick.steps);
+  hpush({ t: "move", who: "cpu", dice: d.slice(), mv });
   addLog({ who: "CPU", dice: diceTxt(d), mv });
   G.moveNo++; busy = false;
   render();
@@ -1500,11 +1532,129 @@ function showSummary() {
   if (S.trainer && r.n) tiles += `<div class="stat"><b>${r.rate.toFixed(1)}</b><span>Error rate · ${r.label}</span></div><div class="stat"><b>${r.inacc + r.mist + r.blun}</b><span>Errors in ${plural(r.n, "decision")}</span></div>`;
   $("overBody").innerHTML = `<div class="result">${o.winner === 0 ? "You win!" : "CPU wins"}</div><div class="sub-result">${plural(o.pts, "point")} · ${kind}</div>
     <div class="stats">${tiles}</div>
-    <div class="btn-row"><button class="btn btn-tinted" id="ovReview">Review game</button><button class="btn btn-primary" id="ovAgain" autofocus>Play again</button></div>`;
+    <div class="btn-row"><button class="btn btn-tinted" id="ovReview">Review with Claude</button><button class="btn btn-primary" id="ovAgain" autofocus>Play again</button></div>`;
   $("ovAgain").onclick = () => { $("over").close(); newGame(true); };
-  $("ovReview").onclick = () => { $("over").close(); setTab("game"); openSheet("stats"); };
+  $("ovReview").onclick = () => { $("over").close(); openExport(); };
   openSheet("over");
 }
+
+/* ---------- export: game record + review prompt for Claude ---------- */
+function evRecord(a, idx, myEq, loss) {
+  return { top: a.slice(0, 3).map(r => ({ mv: BG.notation(r.steps), eq: +r.eq.toFixed(3) })), rank: idx + 1, of: a.length, myEq: +myEq.toFixed(3), loss: +loss.toFixed(3) };
+}
+// Evaluate any of my moves the coach didn't grade live (coach off, or saved before history existed)
+function fillMissingEvals() {
+  for (const h of G.hist) {
+    if (h.t !== "move" || h.who !== "me" || h.forced || h.ev || !h.after || !h.dice) continue;
+    const before = Int8Array.from(h.before), after = Int8Array.from(h.after);
+    const a = BG.rankMoves(NET, before, h.dice[0], h.dice[1], 1, 6), k = BG.key(after);
+    let idx = a.findIndex(r => BG.key(r.pos) === k);
+    const mine = a[idx];
+    if (idx < 0) idx = a.length;
+    const myEq = mine && mine.ply === 1 ? mine.eq : BG.equity(BG.evalAfter1(NET, after));
+    h.ev = evRecord(a, idx, myEq, Math.max(0, a[0].eq - myEq));
+  }
+}
+function posStr(arr) {
+  const b = Int8Array.from(arr), me = [], cpu = [];
+  for (let i = 24; i >= 1; i--) if (b[i]) me.push(`${i}:${b[i]}`);
+  for (let j = 1; j <= 24; j++) if (b[O + j]) cpu.push(`${25 - j}:${b[O + j]}`);
+  const side = (pts, bar, off) => `${pts.join(" ") || "none on board"}${bar ? ` · bar ${bar}` : ""} · off ${off}`;
+  return `Me ${side(me, b[25], BG.offCount(b, 0))} | CPU ${side(cpu, b[O + 25], BG.offCount(b, 1))}`;
+}
+const ownerTxt = o => o === 0 ? "centered" : o === 1 ? "I own it" : "CPU owns it";
+const eqTxt = e => (e >= 0 ? "+" : "-") + Math.abs(e).toFixed(3);
+const REVIEW_PROMPT = `You are a backgammon grandmaster and an expert teacher. Review the money game below, which I (ivory) played against a computer opponent (ebony). I want to get better, so be direct and specific: tell me plainly where I went wrong and why, and don't spend time praising moves that were merely fine.
+
+How to read the data:
+- Points are numbered 1-24 from my side. I move from 24 toward 1 and bear off from my home board (points 1-6). The CPU moves the other way; its home board is my 19-24.
+- Moves are in standard notation, each in the mover's own numbering. So a CPU move "13/7" goes from its 13 point (my 12) to its 7 point (my 18). "*" marks a hit; "bar" and "off" are what they say.
+- Before each of my decisions the position is listed in MY numbering as point:checkers for both sides, plus pip counts and cube state.
+- "Engine" lines come from the app's built-in evaluator: a small neural net with one roll of lookahead. Equities are cubeless, per 1-point stake, from my point of view. Treat them as a strong hint, not ground truth. Where you think the engine is wrong, say so and explain why.
+
+Please give me:
+1. Game summary: how the game was won or lost, in a few sentences, with the turning points.
+2. My key decisions: the 4-8 checker plays or cube decisions that cost the most or teach the most. For each, describe the position in plain terms (game plan, race, threats, timing), what I played, what was better, and the principle behind it. Work from the position data rather than guessing.
+3. Cube handling: every double, take and pass, plus any doubles I missed, with the reasoning (market losers, gammon chances, take points).
+4. Patterns: recurring tendencies in my play this game, good and bad.
+5. What to work on: 3-5 concrete, prioritized study topics or drills for my next games.
+6. A one-line grade for this game and why.
+
+Pitch the explanations at a serious club player. If anything in the record is ambiguous, say what you assumed.`;
+function buildExport() {
+  fillMissingEvals();
+  const lines = [];
+  const o = G.over, lvl = LEVELS[S.level] || "Strong";
+  const lossOf = h => h.t === "move" ? (h.ev ? h.ev.loss : null) : (h.who === "me" && h.loss != null ? h.loss : null);
+  const graded = G.hist.map(lossOf).filter(x => x != null);
+  const tot = graded.reduce((a, x) => a + x, 0), cnt = (lo, hi) => graded.filter(x => x >= lo && x < hi).length;
+  lines.push("GAME RECORD");
+  lines.push("Format: money game, 1 point per game times the cube (gammon 2, backgammon 3). No Jacoby rule, no beavers.");
+  lines.push(`Opponent: CPU, ${lvl} setting${S.level === "expert" ? " (plays the engine's top move with one roll of lookahead)" : S.level === "beginner" ? " (deliberately noisy play)" : " (engine's top move without lookahead)"}.`);
+  lines.push(o ? `Result: ${o.winner === 0 ? "I won" : "CPU won"} ${plural(o.pts, "point")}, ${o.byPass ? "on a pass" : o.value === 3 ? "backgammon" : o.value === 2 ? "gammon" : "single game"}, final cube ${G.cube}.`
+    : `Result: game still in progress. Pips now: me ${BG.pips(G.board, 0)}, CPU ${BG.pips(G.board, 1)}. Position now: ${posStr(Array.from(G.board))}`);
+  if (graded.length) lines.push(`Engine summary of my play: ${graded.length} decisions, ${tot.toFixed(3)} total equity lost, error rate ${(tot / graded.length * 1000).toFixed(1)} (thousandths of a point per decision). Inaccuracies (0.04-0.08): ${cnt(0.04, 0.08)}, mistakes (0.08-0.16): ${cnt(0.08, 0.16)}, blunders (0.16+): ${cnt(0.16, 99)}.`);
+  lines.push("", "MOVES");
+  let turn = 0;
+  for (const h of G.hist) {
+    if (h.t === "open") { lines.push(`Opening roll: me ${h.me}, CPU ${h.cpu}. ${h.me > h.cpu ? `I play first with ${Math.max(h.me, h.cpu)}-${Math.min(h.me, h.cpu)}.` : `CPU plays first with ${Math.max(h.me, h.cpu)}-${Math.min(h.me, h.cpu)}.`}`); continue; }
+    if (h.t === "move" && h.who === "cpu") { turn++; lines.push(`${turn}. CPU ${diceTxt(h.dice)}: ${h.mv}`); continue; }
+    if (h.t === "move") {
+      turn++;
+      const b = Int8Array.from(h.before);
+      lines.push("", `${turn}. ME ${diceTxt(h.dice)} — pips me ${BG.pips(b, 0)}, CPU ${BG.pips(b, 1)}; cube ${h.cube}, ${ownerTxt(h.owner)}`);
+      lines.push(`   Position: ${posStr(h.before)}`);
+      lines.push(`   I played: ${h.mv}${h.forced ? " (forced: only legal play)" : ""}${h.hint ? " (after looking at the hint)" : ""}`);
+      if (h.ev) {
+        const g = grade(h.ev.loss);
+        lines.push(`   Engine: ${g.t}${h.ev.loss >= 0.001 ? `, lost ${h.ev.loss.toFixed(3)}` : ""}; my play ranked ${h.ev.rank} of ${h.ev.of} (${eqTxt(h.ev.myEq)}). Top plays: ${h.ev.top.map(t => `${t.mv} ${eqTxt(t.eq)}`).join(" | ")}`);
+      }
+      lines.push("");
+      continue;
+    }
+    // cube actions
+    const pos = h.before ? `\n   Position: ${posStr(h.before)} (pips me ${BG.pips(Int8Array.from(h.before), 0)}, CPU ${BG.pips(Int8Array.from(h.before), 1)}; cube ${h.cube}, ${ownerTxt(h.owner)})` : "";
+    if (h.who === "cpu" && h.act === "double") lines.push(`   CPU DOUBLES to ${h.to}.${pos}`);
+    else if (h.who === "cpu") lines.push(`   CPU ${h.act === "take" ? "takes" : "passes"}.`);
+    else if (h.act === "take" || h.act === "pass") lines.push(`   I ${h.act === "take" ? "TAKE" : "PASS"}. Engine: take ${eqTxt(h.takeEq)} vs pass ${eqTxt(h.passEq)} (in units of the current cube) — correct answer: ${h.right}${h.loss >= 0.001 ? `, I lost ${h.loss.toFixed(3)}` : ""}. My winning chances ${pct(h.win)}, gammon losses ${pct(h.gl)}.`);
+    else if (h.act === "double") lines.push(`   I DOUBLE to ${h.to}.${pos}\n   Engine: no double ${eqTxt(h.cd.nd)}, double/take ${eqTxt(h.cd.dt)}, double/pass ${eqTxt(h.cd.dp)} — ${h.cd.shouldDouble && !h.cd.tooGood ? "a correct double" : h.cd.tooGood ? "too good to double" : "not a double yet"}${h.loss >= 0.001 ? `, I lost ${h.loss.toFixed(3)}` : ""}.`);
+    else if (h.act === "no double") lines.push(`   I rolled without doubling.${pos}\n   Engine: no double ${eqTxt(h.cd.nd)}, double/take ${eqTxt(h.cd.dt)}, double/pass ${eqTxt(h.cd.dp)} — I missed a double (CPU should ${h.cd.take ? "take" : "pass"}), lost ${h.loss.toFixed(3)}.`);
+  }
+  if (o) lines.push("", `Game over: ${o.winner === 0 ? "I won" : "CPU won"} ${plural(o.pts, "point")}.`);
+  return REVIEW_PROMPT + "\n\n" + lines.join("\n").replace(/\n{3,}/g, "\n\n") + "\n";
+}
+let exportText = "";
+function openExport() {
+  const copy = $("exCopy"), down = $("exDown"), share = $("exShare");
+  copy.disabled = down.disabled = share.disabled = true; copy.textContent = "Preparing…"; $("exText").textContent = "";
+  share.hidden = !navigator.share;
+  openSheet("export");
+  setTimeout(() => {
+    try { exportText = buildExport(); save(); }
+    catch (e) { exportText = ""; copy.textContent = "Couldn't build the export"; return; }
+    $("exText").textContent = exportText;
+    copy.disabled = down.disabled = share.disabled = false; copy.textContent = "Copy prompt";
+  }, 40);
+}
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; } catch (e) {}
+  const ta = document.createElement("textarea");
+  ta.value = t; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+  $("export").appendChild(ta); ta.select(); ta.setSelectionRange(0, t.length);
+  let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+  ta.remove(); return ok;
+}
+function flash(btn, txt, back) { btn.textContent = txt; setTimeout(() => { btn.textContent = back; }, 2000); }
+$("exCopy").onclick = async () => { const ok = await copyText(exportText); flash($("exCopy"), ok ? "Copied — paste it into Claude" : "Copy failed — use Download", "Copy prompt"); };
+$("exShare").onclick = async () => { try { await navigator.share({ title: "Backgammon game review", text: exportText }); } catch (e) {} };
+$("exDown").onclick = () => {
+  const d = new Date(), stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([exportText], { type: "text/plain" }));
+  a.download = `backgammon-review-${stamp}.txt`;
+  $("export").appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+};
 
 /* ---------- sheets ---------- */
 const anySheetOpen = () => [...document.querySelectorAll("dialog.sheet")].some(d => d.open);
@@ -1550,6 +1700,7 @@ function renderStatsSheet() {
     [ST.dec, "Decisions graded"], [`${ST.inacc}·${ST.mistakes}·${ST.blunders}`, "Inacc · mist · blund"]
   ].map(x => `<div class="stat"><b>${x[0]}</b><span>${x[1]}</span></div>`).join("");
 }
+$("bExport").onclick = () => { $("stats").close(); openExport(); };
 $("bReset").onclick = async () => {
   $("stats").close();
   if (!await ask("Reset all stats?", "This clears your all-time stats and the running score.", "Reset")) return;
@@ -1591,7 +1742,9 @@ function layout() {
   const side = vw >= 640 && wSide > wStackRaw * 1.04;
   game.classList.toggle("side", side);
   game.classList.toggle("compact", side && availH < 380);
-  game.style.setProperty("--bw", Math.floor(side ? wSide : wStack) + "px");
+  const bw = Math.floor(side ? wSide : wStack);
+  game.style.setProperty("--bw", bw + "px");
+  game.style.setProperty("--bh", Math.floor(bw / asp) + "px");
   const ls = $("logSide"); ls.scrollTop = ls.scrollHeight;
 }
 window.addEventListener("resize", layout);
