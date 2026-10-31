@@ -94,7 +94,7 @@ dialog.sheet[open]{animation:sheet-in var(--dur) var(--ease)}
 :root{--warn:#c25e00}
 @media (prefers-color-scheme:dark){:root{--warn:#ff9f0a}}
 .game{width:var(--bw,100%);display:flex;flex-direction:column;gap:var(--s2)}
-.game.side{display:grid;width:auto;height:var(--bh,auto);grid-template-columns:var(--bw) 260px;grid-template-rows:auto auto auto minmax(0,1fr);column-gap:20px;row-gap:var(--s2);
+.game.side{display:grid;width:auto;height:var(--bh,auto);grid-template-columns:var(--bw) var(--sidew,260px);grid-template-rows:auto auto auto minmax(0,1fr);column-gap:20px;row-gap:var(--s2);
   grid-template-areas:"board cpu" "board you" "board coach" "board log"}
 .game.side .surface{grid-area:board;align-self:start}
 .game.side .p-cpu{grid-area:cpu}.game.side .p-you{grid-area:you}
@@ -191,6 +191,62 @@ dialog.sheet[open]{animation:sheet-in var(--dur) var(--ease)}
 .preview summary{cursor:pointer;color:var(--accent);font-weight:600;min-height:44px;display:flex;align-items:center}
 .preview pre{white-space:pre-wrap;word-break:break-word;font:12px/1.45 ui-monospace,"SF Mono",Menlo,Consolas,monospace;background:var(--surface-2);border-radius:var(--r-sm);padding:var(--s3);max-height:40dvh;overflow:auto;margin:0}
 #bExport{margin-top:var(--s4)}
+/* review mode */
+body.reviewing .actions .live{display:none!important}
+body:not(.reviewing) .actions .rv{display:none!important}
+body.rv-single .actions .rvmulti{display:none!important}
+.btn.icon{padding:0;width:44px;display:grid;place-items:center}
+.btn.icon svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.rvcard{width:100%;background:var(--surface);border-radius:var(--r-md);padding:var(--s2) var(--s2) var(--s2);box-shadow:inset 0 0 0 1px var(--hairline)}
+.rvcard[hidden]{display:none}
+.game.side .rvcard{grid-area:coach}
+.rv-hd{display:flex;align-items:center;gap:var(--s2);min-height:30px;padding:0 var(--s2);font-size:15px;white-space:nowrap}
+.game.side .logpane{min-height:0}
+.loglist{position:relative}
+.game.side.compact.rv .player{display:none}
+.game.side.compact.rv .rv-foot .rv-note{display:none}
+.game.side.compact.rv .rv-foot{min-height:0}
+.game.side.compact.rv{grid-template-rows:auto minmax(0,1fr)}
+.rv-t{font-weight:600}
+.rv-loss{color:var(--text-2);font-size:14px}
+.rv-n{margin-left:auto;color:var(--text-2);font-size:13px}
+.rv-row{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:var(--s2);width:100%;min-height:44px;margin-top:2px;padding:2px var(--s2);border:0;border-radius:var(--r-sm);
+  background:transparent;color:var(--text);font:inherit;text-align:left;cursor:pointer;transition:background var(--dur) var(--ease)}
+.rv-row.static{cursor:default}
+.rv-row:not(.static):hover{background:var(--surface-2)}
+.rv-row[aria-pressed="true"]{background:var(--accent-tint)}
+.rv-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.rv-row .lab{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.rv-row .lab small{color:var(--text-2);font-size:12px}
+.rv-row .lab .mv{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv-row .eq{font-size:14px;color:var(--text-2)}
+.sw{display:block;width:26px;height:6px;border-radius:3px;box-shadow:0 0 0 1.5px #120c08}
+.sw.best{background:#3d9bff}
+.sw.you{background:repeating-linear-gradient(90deg,#ff9a3c 0 8px,#120c08 8px 12px)}
+.sw.alt{background:#e6dfd0}
+.rv-foot{display:flex;align-items:center;gap:var(--s2);padding:2px var(--s2) 0;min-height:32px}
+.rv-note{flex:1;font-size:13px;color:var(--text-2);line-height:1.3}
+.rv-more{min-height:36px;padding:0 var(--s2);font-size:14px}
+.rvitems{list-style:none;margin:0;padding:0}
+.rvitem{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:var(--s3);width:100%;min-height:52px;padding:4px var(--s2);border:0;border-bottom:.5px solid var(--hairline);
+  background:transparent;color:var(--text);font:inherit;text-align:left;cursor:pointer;border-radius:0}
+.rvitem:hover{background:var(--surface-2)}
+.rvitem.cur{background:var(--accent-tint)}
+.rvitem .pill{min-width:76px;text-align:center}
+.rvi-t{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.rvi-t small{color:var(--text-2);font-size:12px}
+.rvi-t .mv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+.rvi-l{color:var(--text-2);font-size:14px}
+.loglist .rvitem{min-height:44px;padding:2px 0;gap:var(--s2);font-size:14px}
+.loglist .rvitem .pill{min-width:0;font-size:11px;padding:1px 6px}
+.loglist li:has(.rvitem){display:block;padding:0;border-bottom:0}
+.past{padding:var(--s3) 0;border-bottom:.5px solid var(--hairline)}
+.past-hd{display:flex;flex-direction:column;line-height:1.3}
+.past-hd b{font-weight:600}
+.past-k{font-weight:400;color:var(--text-2)}
+.past-hd small{color:var(--text-2);font-size:13px}
+.past-btns{display:flex;gap:var(--s2);margin-top:var(--s2)}
+.past-btns .btn{flex:1}
 .rules ul{padding-left:1.2em;margin:var(--s2) 0}
 .rules li{margin:4px 0}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -248,15 +304,21 @@ dialog.sheet[open]{animation:sheet-in var(--dur) var(--ease)}
       <span class="cbody"><span class="cl1" id="coachL1"></span><span class="cl2" id="coachL2"></span></span>
       <svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
     </button>
+    <div class="rvcard" id="rvcard" hidden></div>
     <div class="logpane" id="logpane"><h3>Moves</h3><ol class="loglist" id="logSide"></ol></div>
   </div>
 </main>
 <nav class="actions" id="actions">
-  <button class="btn btn-plain" id="bUndo">Undo</button>
-  <button class="btn btn-plain" id="bHint">Hint</button>
-  <span class="spacer"></span>
-  <button class="btn btn-tinted" id="bAlt">Double</button>
-  <button class="btn btn-primary" id="bMain">Roll</button>
+  <button class="btn btn-plain live" id="bUndo">Undo</button>
+  <button class="btn btn-plain live" id="bHint">Hint</button>
+  <span class="spacer live"></span>
+  <button class="btn btn-tinted live" id="bAlt">Double</button>
+  <button class="btn btn-primary live" id="bMain">Roll</button>
+  <button class="btn btn-plain rv" id="rvDone">Done</button>
+  <span class="spacer rv"></span>
+  <button class="btn btn-tinted rv rvmulti" id="rvListBtn">All</button>
+  <button class="btn btn-tinted rv rvmulti icon" id="rvPrev" aria-label="Previous decision"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <button class="btn btn-primary rv rvmulti" id="rvNext">Next</button>
 </nav>
 
 <dialog class="sheet" id="rules">
@@ -292,18 +354,28 @@ dialog.sheet[open]{animation:sheet-in var(--dur) var(--ease)}
     </ul>
     <h3>Coach</h3>
     <p>With the coach on, every move and cube decision is checked by a neural-net evaluator with one roll of lookahead. Errors are in equity (points per game at stake 1): under 0.04 is fine, 0.04–0.08 an inaccuracy, 0.08–0.16 a mistake, 0.16 or more a blunder.</p>
+    <h3>Reviewing your games</h3>
+    <ul>
+      <li><b>Visual review</b> (Game over, or Stats) replays your decisions on the board, worst first. Dashed orange arrows are your play, solid blue arrows the best play. Tap either to watch it move.</li>
+      <li><b>Ask Claude</b> copies the whole game with a review prompt. Claude's answer links to each key position, and those links open here.</li>
+      <li>Your last 20 finished games are under Stats → Past games.</li>
+    </ul>
   </div>
 </dialog>
 
 <dialog class="sheet" id="stats">
   <div class="sheet-hd"><h2>Stats</h2><button class="btn btn-plain" data-close>Done</button></div>
   <div class="sheet-bd">
-    <div class="seg full" role="group" aria-label="Stats view"><button aria-pressed="true" data-tab="game">This game</button><button aria-pressed="false" data-tab="all">All time</button></div>
+    <div class="seg full" role="group" aria-label="Stats view"><button aria-pressed="true" data-tab="game">This game</button><button aria-pressed="false" data-tab="past">Past games</button><button aria-pressed="false" data-tab="all">All time</button></div>
     <div id="tabGame">
       <div id="gameReport"></div>
-      <button class="btn btn-primary wide" id="bExport">Review with Claude</button>
+      <div class="btn-row"><button class="btn btn-tinted" id="bVisual">Visual review</button><button class="btn btn-primary" id="bExport">Ask Claude</button></div>
       <h3>Moves</h3>
       <ol class="loglist" id="logSheet"></ol>
+    </div>
+    <div id="tabPast" hidden>
+      <div id="pastList"></div>
+      <p class="note">Your last 20 finished games are kept on this device.</p>
     </div>
     <div id="tabAll" hidden>
       <div class="stats" id="allStats"></div>
@@ -354,6 +426,14 @@ dialog.sheet[open]{animation:sheet-in var(--dur) var(--ease)}
     <button class="btn btn-primary wide" id="exCopy" disabled>Preparing…</button>
     <div class="btn-row" style="margin-top:var(--s2)"><button class="btn btn-tinted" id="exShare" hidden>Share…</button><button class="btn btn-tinted" id="exDown" disabled>Download .txt</button></div>
     <details class="preview"><summary>Preview</summary><pre id="exText"></pre></details>
+  </div>
+</dialog>
+
+<dialog class="sheet" id="rvsheet">
+  <div class="sheet-hd"><h2>Decisions</h2><button class="btn btn-plain" data-close>Done</button></div>
+  <div class="sheet-bd">
+    <div class="seg full" role="group" aria-label="Order"><button data-order="sev" aria-pressed="true">Worst first</button><button data-order="chron" aria-pressed="false">In order</button></div>
+    <ol class="rvitems" id="rvItems"></ol>
   </div>
 </dialog>
 
@@ -801,10 +881,10 @@ function stackXY(side, loc, n, c) {
   return loc <= 12 ? [x, BOT - R - 1 - n * sp] : [x, TOP + R + 1 + n * sp];
 }
 function countAt(side, loc) {
-  const s = side ? O : 0;
-  if (loc === "bar") return G.board[s + 25];
-  if (loc === "off") return BG.offCount(G.board, side);
-  return G.board[s + (side === 0 ? loc : 25 - loc)];
+  const s = side ? O : 0, B = RV ? RV.view.board : G.board;
+  if (loc === "bar") return B[s + 25];
+  if (loc === "off") return BG.offCount(B, side);
+  return B[s + (side === 0 ? loc : 25 - loc)];
 }
 function topXY(side, loc, extra) { const c = countAt(side, loc) + (extra || 0); return stackXY(side, loc, Math.max(0, c - 1), Math.max(1, c)); }
 // board location under an SVG coordinate, in human numbering (25 bar, 0 tray)
@@ -871,10 +951,10 @@ function triPts(hp, inset) {
   return `${x + inset},${base} ${x + PW - inset},${base} ${x + PW / 2},${tip}`;
 }
 function render() {
-  if (!G) return;
-  const b = G.board, gold = "#f6c94f";
+  if (!G && !RV) return;
+  const b = RV ? RV.view.board : G.board, gold = "#f6c94f";
   let h = "", p = "", o = "";
-  const moving = G.phase === "moving" && G.turn === 0;
+  const moving = !RV && G.phase === "moving" && G.turn === 0;
   // destination glow on points / tray (under the checkers)
   if (moving) dests.forEach((st, d) => {
     const on = d === hoverDest;
@@ -882,7 +962,7 @@ function render() {
     else h += `<polygon points="${triPts(d, 1.5)}" fill="${gold}" opacity="${on ? .5 : .28}"/>`;
   });
   // where the CPU's last move came from
-  if (lastMove) lastMove.from.forEach(l => { if (typeof l === "number") { const x = colX(l) + PW / 2, y = l <= 12 ? BOT - 5 : TOP + 5; h += `<circle cx="${x}" cy="${y}" r="3.5" fill="#f2c24e" opacity=".85"/>`; } });
+  if (lastMove && !RV) lastMove.from.forEach(l => { if (typeof l === "number") { const x = colX(l) + PW / 2, y = l <= 12 ? BOT - 5 : TOP + 5; h += `<circle cx="${x}" cy="${y}" r="3.5" fill="#f2c24e" opacity=".85"/>`; } });
   const dragging = hideTop && hideTop.side === 0 && sel != null;
   for (const side of [0, 1]) {
     const so = side ? O : 0, ink = side ? "#efe4cf" : "#2a1d12";
@@ -896,7 +976,7 @@ function render() {
         p += ckUse(side, x, y);
       }
       if (c > 5 && draw === c) { const [x, y] = stackXY(side, loc, c - 1, c); p += `<text class="cnt" x="${x}" y="${y}" fill="${ink}">${c}</text>`; }
-      if (lastMove && lastMove.side === side && lastMove.to.includes(loc) && draw === c) { const [x, y] = stackXY(side, loc, c - 1, c); o += `<circle cx="${x}" cy="${y}" r="${R + 1}" fill="none" stroke="#f2c24e" stroke-width="1.6" opacity=".75"/>`; }
+      if (lastMove && !RV && lastMove.side === side && lastMove.to.includes(loc) && draw === c) { const [x, y] = stackXY(side, loc, c - 1, c); o += `<circle cx="${x}" cy="${y}" r="${R + 1}" fill="none" stroke="#f2c24e" stroke-width="1.6" opacity=".75"/>`; }
     }
     const nb = b[so + 25], drawBar = hideTop && hideTop.side === side && hideTop.loc === "bar" ? nb - 1 : nb;
     for (let n = 0; n < drawBar; n++) { let [x, y] = stackXY(side, "bar", n, nb); if (side === 0 && sel === 25 && !dragging && n === drawBar - 1) y -= 7; p += ckUse(side, x, y); }
@@ -925,6 +1005,7 @@ function render() {
       o += `<circle cx="${x}" cy="${y}" r="9.5" fill="${hit ? "#ff8a6b" : gold}" stroke="rgba(0,0,0,.35)" stroke-width=".8"/><text class="chipv" x="${x}" y="${y + .5}">${tot}</text>`;
     });
   }
+  if (RV && RV.arrows.length) o += arrowsSvg(RV.arrows);
   L.H.innerHTML = h; L.P.innerHTML = p; L.O.innerHTML = o;
   renderDice();
   renderStrips();
@@ -939,40 +1020,43 @@ function dieSvg(v, x, y, s, used, dark) {
 }
 let diceSig = "", lastRollDrawn = -1, cubeSig = "";
 function renderDice() {
-  const cubePart = S.cube ? `${G.cube}|${G.owner}` : "none";
-  const sig = JSON.stringify([G.diceShow, G.diceSide, G.opening, rollId, cubePart]);
+  const V = RV ? RV.view : G, showCube = RV ? V.showCube : S.cube;
+  const cubePart = showCube ? `${V.cube}|${V.owner}` : "none";
+  const sig = JSON.stringify([V.diceShow, V.diceSide, V.opening, rollId, cubePart, !!RV]);
   if (sig === diceSig) return;
   diceSig = sig;
   let s = "";
   const fresh = rollId !== lastRollDrawn && !reduced();
   lastRollDrawn = rollId;
-  if (G.opening) {
-    s += `<g class="${fresh ? "tumble" : ""}">${dieSvg(G.opening[0], DIEX[0], MIDY, 36, false, false)}</g>`;
-    s += `<g class="${fresh ? "tumble" : ""}">${dieSvg(G.opening[1], DIEX[1], MIDY, 36, false, true)}</g>`;
-  } else if (G.diceShow) {
-    const d = G.diceShow, side = G.diceSide, sz = d.length > 2 ? 30 : 36, gap = 9, w = d.length * sz + (d.length - 1) * gap;
+  if (V.opening) {
+    s += `<g class="${fresh ? "tumble" : ""}">${dieSvg(V.opening[0], DIEX[0], MIDY, 36, false, false)}</g>`;
+    s += `<g class="${fresh ? "tumble" : ""}">${dieSvg(V.opening[1], DIEX[1], MIDY, 36, false, true)}</g>`;
+  } else if (V.diceShow) {
+    const d = V.diceShow, side = V.diceSide, sz = d.length > 2 ? 30 : 36, gap = 9, w = d.length * sz + (d.length - 1) * gap;
     d.forEach((v, i) => { const x = DIEX[side] - w / 2 + sz / 2 + i * (sz + gap); s += `<g class="${fresh ? "tumble" : ""}">${dieSvg(v.v, x, MIDY, sz, v.used, side === 1)}</g>`; });
   }
-  if (S.cube) {
-    const cy = G.owner === 0 ? MIDY : G.owner === 1 ? BOT - TRH + 22 : TOP + TRH - 22, cx = TRX + TRAYW / 2, face = G.owner === 0 && G.cube === 1 ? 64 : G.cube;
+  if (showCube) {
+    const cy = V.owner === 0 ? MIDY : V.owner === 1 ? BOT - TRH + 22 : TOP + TRH - 22, cx = TRX + TRAYW / 2, face = V.owner === 0 && V.cube === 1 ? 64 : V.cube;
     const popIt = cubeSig && cubeSig !== cubePart && !reduced();
     s += `<g class="${popIt ? "pop" : ""}"><rect x="${cx - 15}" y="${cy - 13}" width="32" height="32" rx="5" fill="rgba(0,0,0,.35)"/><rect x="${cx - 16}" y="${cy - 16}" width="32" height="32" rx="5" fill="#f4ecdb" stroke="#3a2818" stroke-width="1.2"/><text class="cubev" x="${cx}" y="${cy + 1}" style="font-size:${face >= 16 ? 15 : 18}px">${face}</text></g>`;
   }
   cubeSig = cubePart;
   L.D.innerHTML = s;
 }
-function animateFly(side, fromXY, toXY, ms) {
+function animateFly(side, fromXY, toXY, ms, alive) {
   const g = gen;
   return new Promise(res => {
     if (reduced()) return res();
     L.F.innerHTML = ckUse(side, fromXY[0], fromXY[1]);
     const el = L.F.firstChild, t0 = performance.now(), dx = toXY[0] - fromXY[0], dy = toXY[1] - fromXY[1];
     const lift = Math.min(26, 8 + Math.hypot(dx, dy) * 0.06);
+    const clear = () => { if (L.F.firstChild === el) L.F.innerHTML = ""; };
     function f(t) {
       if (g !== gen) return;
+      if (alive && !alive()) { clear(); return res(); }
       let k = Math.min(1, (t - t0) / ms); k = 1 - Math.pow(1 - k, 3);
       el.setAttribute("transform", `translate(${dx * k},${dy * k - Math.sin(k * Math.PI) * lift})`);
-      if (k < 1) requestAnimationFrame(f); else { L.F.innerHTML = ""; res(); }
+      if (k < 1) requestAnimationFrame(f); else { clear(); res(); }
     }
     requestAnimationFrame(f);
   });
@@ -1004,6 +1088,15 @@ let toastT = 0;
 function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2000); }
 function nudge() { svg.classList.remove("nudge"); void svg.getBoundingClientRect(); svg.classList.add("nudge"); }
 function renderStrips() {
+  if (RV) {
+    const v = RV.view;
+    $("pipH").textContent = BG.pips(v.board, 0); $("pipC").textContent = BG.pips(v.board, 1);
+    $("winHW").hidden = $("winCW").hidden = true;
+    $("pYou").classList.add("active"); $("pCpu").classList.remove("active");
+    $("pYou").classList.toggle("owns", v.owner === 1); $("pCpu").classList.toggle("owns", v.owner === -1);
+    $("cubeYou").textContent = $("cubeCpu").textContent = "Cube " + v.cube;
+    return;
+  }
   $("pipH").textContent = BG.pips(G.board, 0);
   $("pipC").textContent = BG.pips(G.board, 1);
   $("scH").textContent = session.h; $("scC").textContent = session.c;
@@ -1028,7 +1121,7 @@ function logHtml() {
 }
 function renderLog() {
   const html = logHtml(), side = $("logSide");
-  side.innerHTML = html; side.scrollTop = side.scrollHeight;
+  if (!RV) { side.innerHTML = html; side.scrollTop = side.scrollHeight; }
   if ($("stats").open) renderStatsSheet();
 }
 
@@ -1054,7 +1147,7 @@ function unrecordLast() {
 function setCoach(c) { coachState = c; renderCoach(); }
 function renderCoach() {
   const el = $("coach");
-  el.hidden = !S.trainer;
+  el.hidden = !S.trainer || !!RV;
   if (!coachState) {
     el.className = "coach idle";
     $("coachL1").textContent = "Coach is on";
@@ -1109,7 +1202,7 @@ function destsFrom(src) {
   rec(G.board, src, rem0, []);
   return map;
 }
-const canAct = () => G && G.phase === "moving" && G.turn === 0 && !busy;
+const canAct = () => !RV && G && G.phase === "moving" && G.turn === 0 && !busy;
 function select(src) { sel = src; dests = src == null ? new Map() : destsFrom(src); render(); }
 async function doHumanSteps(steps, instant) {
   busy = true; sel = null; dests = new Map(); hoverDest = null; render();
@@ -1238,7 +1331,7 @@ function humanTurnStart() {
   } else {
     setStatus("Your turn");
     setButtons({ main: "Roll", onMain: () => humanRoll() });
-    later(() => { if (G.phase === "preroll" && G.turn === 0 && !canDouble(0) && !anySheetOpen()) humanRoll(); }, 450);
+    later(() => { if (G.phase === "preroll" && G.turn === 0 && !canDouble(0) && !anySheetOpen() && !RV) humanRoll(); }, 450);
   }
 }
 const cubeInfoHuman = () => BG.cubeDecision(BG.evalPre1(NET, G.board), G.owner);
@@ -1512,6 +1605,7 @@ function gameOver(winner, value, byPass) {
   else { ST.ptsAgainst += pts; session.c += pts; if (value >= 2) ST.gL++; }
   const kind = byPass ? "on a pass" : value === 3 ? "with a backgammon" : value === 2 ? "with a gammon" : "";
   addLog({ note: `${winner === 0 ? "You win" : "CPU wins"} ${plural(pts, "point")} ${kind}`.trim() });
+  archiveGame();
   render(); save();
   setStatus(`${winner === 0 ? "You won" : "CPU won"} ${plural(pts, "point")}${kind ? " " + kind : ""}`);
   setButtons({ main: "New game", onMain: () => newGame() });
@@ -1532,8 +1626,10 @@ function showSummary() {
   if (S.trainer && r.n) tiles += `<div class="stat"><b>${r.rate.toFixed(1)}</b><span>Error rate · ${r.label}</span></div><div class="stat"><b>${r.inacc + r.mist + r.blun}</b><span>Errors in ${plural(r.n, "decision")}</span></div>`;
   $("overBody").innerHTML = `<div class="result">${o.winner === 0 ? "You win!" : "CPU wins"}</div><div class="sub-result">${plural(o.pts, "point")} · ${kind}</div>
     <div class="stats">${tiles}</div>
-    <div class="btn-row"><button class="btn btn-tinted" id="ovReview">Review with Claude</button><button class="btn btn-primary" id="ovAgain" autofocus>Play again</button></div>`;
+    <div class="btn-row"><button class="btn btn-tinted" id="ovVisual">Visual review</button><button class="btn btn-tinted" id="ovReview">Ask Claude</button></div>
+    <button class="btn btn-primary wide" id="ovAgain" autofocus>Play again</button>`;
   $("ovAgain").onclick = () => { $("over").close(); newGame(true); };
+  $("ovVisual").onclick = () => { $("over").close(); reviewCurrent(); };
   $("ovReview").onclick = () => { $("over").close(); openExport(); };
   openSheet("over");
 }
@@ -1543,10 +1639,10 @@ function evRecord(a, idx, myEq, loss) {
   return { top: a.slice(0, 3).map(r => ({ mv: BG.notation(r.steps), eq: +r.eq.toFixed(3) })), rank: idx + 1, of: a.length, myEq: +myEq.toFixed(3), loss: +loss.toFixed(3) };
 }
 // Evaluate any of my moves the coach didn't grade live (coach off, or saved before history existed)
-function fillMissingEvals() {
-  for (const h of G.hist) {
+function fillMissingEvals(hist) {
+  for (const h of hist) {
     if (h.t !== "move" || h.who !== "me" || h.forced || h.ev || !h.after || !h.dice) continue;
-    const before = Int8Array.from(h.before), after = Int8Array.from(h.after);
+    const before = hb(h.before), after = hb(h.after);
     const a = BG.rankMoves(NET, before, h.dice[0], h.dice[1], 1, 6), k = BG.key(after);
     let idx = a.findIndex(r => BG.key(r.pos) === k);
     const mine = a[idx];
@@ -1556,7 +1652,7 @@ function fillMissingEvals() {
   }
 }
 function posStr(arr) {
-  const b = Int8Array.from(arr), me = [], cpu = [];
+  const b = hb(arr), me = [], cpu = [];
   for (let i = 24; i >= 1; i--) if (b[i]) me.push(`${i}:${b[i]}`);
   for (let j = 1; j <= 24; j++) if (b[O + j]) cpu.push(`${25 - j}:${b[O + j]}`);
   const side = (pts, bar, off) => `${pts.join(" ") || "none on board"}${bar ? ` · bar ${bar}` : ""} · off ${off}`;
@@ -1570,6 +1666,7 @@ How to read the data:
 - Points are numbered 1-24 from my side. I move from 24 toward 1 and bear off from my home board (points 1-6). The CPU moves the other way; its home board is my 19-24.
 - Moves are in standard notation, each in the mover's own numbering. So a CPU move "13/7" goes from its 13 point (my 12) to its 7 point (my 18). "*" marks a hit; "bar" and "off" are what they say.
 - Before each of my decisions the position is listed in MY numbering as point:checkers for both sides, plus pip counts and cube state.
+- "Board:" links open that exact position in the game's visual review, where I can watch my play (dashed orange arrows) and the best play (solid blue arrows) move on the board.
 - "Engine" lines come from the app's built-in evaluator: a small neural net with one roll of lookahead. Equities are cubeless, per 1-point stake, from my point of view. Treat them as a strong hint, not ground truth. Where you think the engine is wrong, say so and explain why.
 
 How to explain:
@@ -1580,63 +1677,80 @@ How to explain:
 
 Please give me:
 1. Game summary: how the game was won or lost, in a few sentences, with the turning points.
-2. My key decisions: the 3-5 checker plays or cube decisions that teach the most. For each, describe the position, what I played, what was better, and why, ending with a one-sentence takeaway. Work from the position data rather than guessing.
+2. My key decisions: the 3-5 checker plays or cube decisions that teach the most. For each, describe the position, what I played, what was better, and why, ending with a one-sentence takeaway and the decision's Board link. Work from the position data rather than guessing.
 3. Cube decisions: every double, take and pass, plus any doubles I missed, explained simply (when doubling makes sense, and why some doubles should be taken and others passed).
 4. What I did well: one or two things to keep doing.
 5. What to work on: my top 3 lessons from this game, in priority order, each with a simple drill or habit to practice.
 6. A one-line grade for this game and why.
+7. Visual review: end with a list of the decisions worth replaying on the board, most severe first. Start from DECISIONS BY SEVERITY and adjust the order where you disagree with the engine. One line each: the turn, what to look for on the board, and its Board link.
+
+Copy Board links exactly as they appear in the record. Never shorten, edit, or make up a link; if a decision has no link, just leave it out.
 
 If anything in the record is ambiguous, say what you assumed.`;
-function buildExport() {
-  fillMissingEvals();
+function buildExport(rec) {
+  const decs = buildDecisions(rec), byI = new Map(decs.map(D => [D.i, D])), links = new Map();
+  decs.forEach(D => { const u = linkFor(D); if (u) links.set(D.i, u); });
   const lines = [];
-  const o = G.over, lvl = LEVELS[S.level] || "Strong";
-  const lossOf = h => h.t === "move" ? (h.ev ? h.ev.loss : null) : (h.who === "me" && h.loss != null ? h.loss : null);
-  const graded = G.hist.map(lossOf).filter(x => x != null);
+  const o = rec.over, lvl = LEVELS[rec.level] || "Strong";
+  const lossOf = h => h.t === "move" ? (h.who === "me" && h.ev ? h.ev.loss : null) : (h.who === "me" && h.loss != null ? h.loss : null);
+  const graded = rec.hist.map(lossOf).filter(x => x != null);
   const tot = graded.reduce((a, x) => a + x, 0), cnt = (lo, hi) => graded.filter(x => x >= lo && x < hi).length;
   lines.push("GAME RECORD");
   lines.push("Format: money game, 1 point per game times the cube (gammon 2, backgammon 3). No Jacoby rule, no beavers.");
-  lines.push(`Opponent: CPU, ${lvl} setting${S.level === "expert" ? " (plays the engine's top move with one roll of lookahead)" : S.level === "beginner" ? " (deliberately noisy play)" : " (engine's top move without lookahead)"}.`);
-  lines.push(o ? `Result: ${o.winner === 0 ? "I won" : "CPU won"} ${plural(o.pts, "point")}, ${o.byPass ? "on a pass" : o.value === 3 ? "backgammon" : o.value === 2 ? "gammon" : "single game"}, final cube ${G.cube}.`
-    : `Result: game still in progress. Pips now: me ${BG.pips(G.board, 0)}, CPU ${BG.pips(G.board, 1)}. Position now: ${posStr(Array.from(G.board))}`);
+  lines.push(`Opponent: CPU, ${lvl} setting${rec.level === "beginner" ? " (deliberately noisy play)" : rec.level === "intermediate" ? " (engine's top move without lookahead)" : " (plays the engine's top move with one roll of lookahead)"}.`);
+  lines.push(o ? `Result: ${o.winner === 0 ? "I won" : "CPU won"} ${plural(o.pts, "point")}, ${o.byPass ? "on a pass" : o.value === 3 ? "backgammon" : o.value === 2 ? "gammon" : "single game"}, final cube ${rec.cube}.`
+    : `Result: game still in progress. Pips now: me ${BG.pips(rec.board, 0)}, CPU ${BG.pips(rec.board, 1)}. Position now: ${posStr(Array.from(rec.board))}`);
   if (graded.length) lines.push(`Engine summary of my play: ${graded.length} decisions, ${tot.toFixed(3)} total equity lost, error rate ${(tot / graded.length * 1000).toFixed(1)} (thousandths of a point per decision). Inaccuracies (0.04-0.08): ${cnt(0.04, 0.08)}, mistakes (0.08-0.16): ${cnt(0.08, 0.16)}, blunders (0.16+): ${cnt(0.16, 99)}.`);
   lines.push("", "MOVES");
   let turn = 0;
-  for (const h of G.hist) {
-    if (h.t === "open") { lines.push(`Opening roll: me ${h.me}, CPU ${h.cpu}. ${h.me > h.cpu ? `I play first with ${Math.max(h.me, h.cpu)}-${Math.min(h.me, h.cpu)}.` : `CPU plays first with ${Math.max(h.me, h.cpu)}-${Math.min(h.me, h.cpu)}.`}`); continue; }
-    if (h.t === "move" && h.who === "cpu") { turn++; lines.push(`${turn}. CPU ${diceTxt(h.dice)}: ${h.mv}`); continue; }
+  const board = i => links.has(i) ? `\n   Board: ${links.get(i)}` : "";
+  rec.hist.forEach((h, hi) => {
+    if (h.t === "open") { lines.push(`Opening roll: me ${h.me}, CPU ${h.cpu}. ${h.me > h.cpu ? `I play first with ${Math.max(h.me, h.cpu)}-${Math.min(h.me, h.cpu)}.` : `CPU plays first with ${Math.max(h.me, h.cpu)}-${Math.min(h.me, h.cpu)}.`}`); return; }
+    if (h.t === "move" && h.who === "cpu") { turn++; lines.push(`${turn}. CPU ${diceTxt(h.dice)}: ${h.mv}`); return; }
     if (h.t === "move") {
       turn++;
-      const b = Int8Array.from(h.before);
+      const b = hb(h.before);
       lines.push("", `${turn}. ME ${diceTxt(h.dice)} — pips me ${BG.pips(b, 0)}, CPU ${BG.pips(b, 1)}; cube ${h.cube}, ${ownerTxt(h.owner)}`);
       lines.push(`   Position: ${posStr(h.before)}`);
       lines.push(`   I played: ${h.mv}${h.forced ? " (forced: only legal play)" : ""}${h.hint ? " (after looking at the hint)" : ""}`);
       if (h.ev) {
         const g = grade(h.ev.loss);
-        lines.push(`   Engine: ${g.t}${h.ev.loss >= 0.001 ? `, lost ${h.ev.loss.toFixed(3)}` : ""}; my play ranked ${h.ev.rank} of ${h.ev.of} (${eqTxt(h.ev.myEq)}). Top plays: ${h.ev.top.map(t => `${t.mv} ${eqTxt(t.eq)}`).join(" | ")}`);
+        lines.push(`   Engine: ${g.t}${h.ev.loss >= 0.001 ? `, lost ${h.ev.loss.toFixed(3)}` : ""}; my play ranked ${h.ev.rank} of ${h.ev.of} (${eqTxt(h.ev.myEq)}). Top plays: ${h.ev.top.map(t => `${t.mv} ${eqTxt(t.eq)}`).join(" | ")}${board(hi)}`);
       }
       lines.push("");
-      continue;
+      return;
     }
     // cube actions
-    const pos = h.before ? `\n   Position: ${posStr(h.before)} (pips me ${BG.pips(Int8Array.from(h.before), 0)}, CPU ${BG.pips(Int8Array.from(h.before), 1)}; cube ${h.cube}, ${ownerTxt(h.owner)})` : "";
+    const pos = h.before ? `\n   Position: ${posStr(h.before)} (pips me ${BG.pips(hb(h.before), 0)}, CPU ${BG.pips(hb(h.before), 1)}; cube ${h.cube}, ${ownerTxt(h.owner)})` : "";
     if (h.who === "cpu" && h.act === "double") lines.push(`   CPU DOUBLES to ${h.to}.${pos}`);
     else if (h.who === "cpu") lines.push(`   CPU ${h.act === "take" ? "takes" : "passes"}.`);
-    else if (h.act === "take" || h.act === "pass") lines.push(`   I ${h.act === "take" ? "TAKE" : "PASS"}. Engine: take ${eqTxt(h.takeEq)} vs pass ${eqTxt(h.passEq)} (in units of the current cube) — correct answer: ${h.right}${h.loss >= 0.001 ? `, I lost ${h.loss.toFixed(3)}` : ""}. My winning chances ${pct(h.win)}, gammon losses ${pct(h.gl)}.`);
-    else if (h.act === "double") lines.push(`   I DOUBLE to ${h.to}.${pos}\n   Engine: no double ${eqTxt(h.cd.nd)}, double/take ${eqTxt(h.cd.dt)}, double/pass ${eqTxt(h.cd.dp)} — ${h.cd.shouldDouble && !h.cd.tooGood ? "a correct double" : h.cd.tooGood ? "too good to double" : "not a double yet"}${h.loss >= 0.001 ? `, I lost ${h.loss.toFixed(3)}` : ""}.`);
-    else if (h.act === "no double") lines.push(`   I rolled without doubling.${pos}\n   Engine: no double ${eqTxt(h.cd.nd)}, double/take ${eqTxt(h.cd.dt)}, double/pass ${eqTxt(h.cd.dp)} — I missed a double (CPU should ${h.cd.take ? "take" : "pass"}), lost ${h.loss.toFixed(3)}.`);
-  }
+    else if (h.act === "take" || h.act === "pass") lines.push(`   I ${h.act === "take" ? "TAKE" : "PASS"}. Engine: take ${eqTxt(h.takeEq)} vs pass ${eqTxt(h.passEq)} (in units of the current cube) — correct answer: ${h.right}${h.loss >= 0.001 ? `, I lost ${h.loss.toFixed(3)}` : ""}. My winning chances ${pct(h.win)}, gammon losses ${pct(h.gl)}.${board(hi)}`);
+    else if (h.act === "double") lines.push(`   I DOUBLE to ${h.to}.${pos}\n   Engine: no double ${eqTxt(h.cd.nd)}, double/take ${eqTxt(h.cd.dt)}, double/pass ${eqTxt(h.cd.dp)} — ${h.cd.shouldDouble && !h.cd.tooGood ? "a correct double" : h.cd.tooGood ? "too good to double" : "not a double yet"}${h.loss >= 0.001 ? `, I lost ${h.loss.toFixed(3)}` : ""}.${board(hi)}`);
+    else if (h.act === "no double") lines.push(`   I rolled without doubling.${pos}\n   Engine: no double ${eqTxt(h.cd.nd)}, double/take ${eqTxt(h.cd.dt)}, double/pass ${eqTxt(h.cd.dp)} — I missed a double (CPU should ${h.cd.take ? "take" : "pass"}), lost ${h.loss.toFixed(3)}.${board(hi)}`);
+  });
   if (o) lines.push("", `Game over: ${o.winner === 0 ? "I won" : "CPU won"} ${plural(o.pts, "point")}.`);
+  // worst-first list for the visual review section
+  const sev = sevSort(decs).filter(D => links.has(D.i));
+  let pick = sev.filter(D => D.loss >= 0.04);
+  pick = pick.slice(0, 10);
+  if (pick.length < 3) pick = pick.concat(sev.filter(D => D.loss >= 0.001 && D.loss < 0.04).slice(0, 3 - pick.length));
+  lines.push("", "DECISIONS BY SEVERITY (engine's view, worst first)");
+  if (!pick.length) lines.push("None: every graded decision was the engine's top choice.");
+  pick.forEach((D, n) => {
+    const what = D.kind === "move" ? `played ${D.mv}, engine's best ${D.best || "?"}` : D.act === "take" ? "took a double" : D.act === "pass" ? "passed a double" : D.act === "double" ? `doubled to ${D.to}` : "missed a double";
+    lines.push(`${n + 1}. Turn ${D.turn} · ${grade(D.loss).t}, lost ${D.loss.toFixed(3)} · ${what}\n   Board: ${links.get(D.i)}`);
+  });
   return REVIEW_PROMPT + "\n\n" + lines.join("\n").replace(/\n{3,}/g, "\n\n") + "\n";
 }
 let exportText = "";
-function openExport() {
+function openExport(rec) {
+  rec = rec || curRec();
   const copy = $("exCopy"), down = $("exDown"), share = $("exShare");
   copy.disabled = down.disabled = share.disabled = true; copy.textContent = "Preparing…"; $("exText").textContent = "";
   share.hidden = !navigator.share;
   openSheet("export");
   setTimeout(() => {
-    try { exportText = buildExport(); save(); }
+    try { exportText = buildExport(rec); save(); if (rec.id) saveArchiveRec(rec); }
     catch (e) { exportText = ""; copy.textContent = "Couldn't build the export"; return; }
     $("exText").textContent = exportText;
     copy.disabled = down.disabled = share.disabled = false; copy.textContent = "Copy prompt";
@@ -1661,6 +1775,327 @@ $("exDown").onclick = () => {
   $("export").appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 };
+
+/* ---------- visual review: decisions, arrows, links, saved games ---------- */
+let RV = null;   // review state while reviewing; the live game (G) is never touched
+const hx = b => Array.from(b, v => v.toString(16)).join("");
+const hb = x => typeof x === "string" ? Int8Array.from(x, c => parseInt(c, 16)) : Int8Array.from(x);
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+function turnMap(hist) {
+  const m = new Map(); let t = 0;
+  hist.forEach((h, i) => { if (h.t === "move") { t++; m.set(i, t); } else if (h.t === "cube") m.set(i, t + 1); });
+  return m;
+}
+function stepsFor(before, dice, afterKey) {
+  const g = BG.genMoves(before, dice[0], dice[1]).list.find(m => BG.key(m.pos) === afterKey);
+  return g ? g.steps : null;
+}
+const curRec = () => ({ hist: G.hist, over: G.over, cube: G.cube, level: S.level, board: G.board, current: true });
+// Every graded decision of mine in a game record
+function buildDecisions(rec) {
+  fillMissingEvals(rec.hist);
+  const tm = turnMap(rec.hist), out = [];
+  rec.hist.forEach((h, i) => {
+    if (h.t === "move" && h.who === "me" && !h.forced && h.after && h.ev)
+      out.push({ kind: "move", i, turn: tm.get(i), before: hb(h.before), after: hb(h.after), dice: h.dice, mv: h.mv, loss: h.ev.loss, best: h.ev.top[0] && h.ev.top[0].mv, cube: h.cube, owner: h.owner });
+    else if (h.t === "cube" && h.who === "me" && h.before)
+      out.push({ kind: "cube", act: h.act, i, turn: tm.get(i), before: hb(h.before), loss: h.loss || 0, cube: h.cube, owner: h.owner, to: h.to || h.cube * 2 });
+  });
+  return out;
+}
+const sevSort = list => list.slice().sort((a, b) => (b.loss || 0) - (a.loss || 0) || a.turn - b.turn);
+
+/* --- links: one decision, self-contained, with a checksum so a damaged link can't show a wrong board --- */
+function cks(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return (h % 46656).toString(36).padStart(3, "0"); }
+const ACT = { double: "d", "no double": "n", take: "t", pass: "p" }, ACT_R = { d: "double", n: "no double", t: "take", p: "pass" };
+function linkFor(D) {
+  let body;
+  if (D.kind === "move") {
+    const steps = D.steps || stepsFor(D.before, D.dice, BG.key(D.after));
+    if (!steps) return null;
+    body = `m${hx(D.before)}${D.dice[0]}${D.dice[1]}${steps.map(s => s[0].toString(36) + s[3]).join("")}`;
+  } else body = `c${hx(D.before)}${ACT[D.act]}`;
+  const full = `${body}.${Math.round(Math.log2(D.cube || 1))}${D.owner === 1 ? "m" : D.owner === -1 ? "o" : "c"}.${D.turn}`;
+  return location.href.split(/[?#]/)[0] + "?r=" + full + "." + cks(full);
+}
+function decodeLink(p) {
+  const parts = String(p).split(".");
+  if (parts.length !== 4) return null;
+  const full = parts.slice(0, 3).join(".");
+  if (cks(full) !== parts[3]) return null;
+  const body = parts[0], ct = parts[1], turn = parseInt(parts[2], 10), hex = body.slice(1, 53);
+  if (!/^[0-9a-f]{52}$/.test(hex) || !(turn > 0) || ct.length !== 2) return null;
+  const before = hb(hex);
+  let a = 0, c = 0; for (let i = 1; i < 26; i++) { a += before[i]; c += before[O + i]; }
+  if (a > 15 || c > 15 || before[0] || before[O]) return null;
+  const ce = parseInt(ct[0], 10), owner = { c: 0, m: 1, o: -1 }[ct[1]];
+  if (!(ce >= 0 && ce <= 6) || owner === undefined) return null;
+  const cube = 2 ** ce;
+  if (body[0] === "m") {
+    const d1 = +body[53], d2 = +body[54], st = body.slice(55);
+    if (!(d1 >= 1 && d1 <= 6 && d2 >= 1 && d2 <= 6) || !st.length || st.length % 2) return null;
+    let bb = new Int8Array(before); const steps = [];
+    for (let i = 0; i < st.length; i += 2) {
+      const from = parseInt(st[i], 36), die = +st[i + 1];
+      if (!(from >= 1 && from <= 25 && die >= 1 && die <= 6) || !BG.canMove(bb, from, die)) return null;
+      const out = [false]; bb = BG.applyStep(bb, from, die, out); steps.push([from, Math.max(0, from - die), out[0], die]);
+    }
+    const k = BG.key(bb);
+    if (!BG.genMoves(before, d1, d2).list.some(m => BG.key(m.pos) === k)) return null;
+    return { kind: "move", before, after: bb, dice: [d1, d2], mv: BG.notation(steps), steps, turn, cube, owner, loss: null };
+  }
+  if (body[0] === "c" && body.length === 54 && ACT_R[body[53]]) return { kind: "cube", act: ACT_R[body[53]], before, turn, cube, owner, to: cube * 2, loss: null };
+  return null;
+}
+
+/* --- evaluation details, computed when a decision is shown --- */
+function moveDetail(D) {
+  if (D.det) return D.det;
+  const a = BG.rankMoves(NET, D.before, D.dice[0], D.dice[1], 1, 6), k = BG.key(D.after);
+  const idx = a.findIndex(r => BG.key(r.pos) === k), mine = a[idx];
+  const myEq = mine && mine.ply === 1 ? mine.eq : BG.equity(BG.evalAfter1(NET, D.after));
+  const mySteps = D.steps || (mine ? mine.steps : stepsFor(D.before, D.dice, k)) || [];
+  const loss = Math.max(0, a[0].eq - myEq);
+  if (D.loss == null) D.loss = loss;
+  return D.det = { a, idx: idx < 0 ? a.length : idx, myEq, mySteps, loss, same: idx === 0 };
+}
+function cubeDetail(D) {
+  if (D.det) return D.det;
+  let rows, loss, note;
+  if (D.act === "take" || D.act === "pass") {
+    const pc = BG.evalPre1(NET, BG.flip(D.before)), cd = BG.cubeDecision(pc, D.owner === -1 ? 1 : D.owner === 1 ? -1 : 0);
+    const right = cd.take ? "take" : "pass", eq = { take: -cd.dt, pass: -cd.dp };
+    loss = D.act === right ? 0 : Math.abs(cd.dt - cd.dp);
+    rows = D.act === right ? [{ lab: "Your decision — the right one", v: cap(D.act), eq: eq[D.act], sw: "best" }]
+      : [{ lab: "Your decision", v: cap(D.act), eq: eq[D.act], sw: "you" }, { lab: "Best", v: cap(right), eq: eq[right], sw: "best" }];
+    note = `The CPU doubled to ${D.to}. Your winning chances ${pct(1 - pc[0])}, gammon losses ${pct(pc[1])}. Equities are for you, per current cube.`;
+  } else {
+    const p = BG.evalPre1(NET, D.before), cd = BG.cubeDecision(p, D.owner), dbl = Math.min(cd.dt, cd.dp);
+    const shouldDbl = cd.shouldDouble && !cd.tooGood, mineDbl = D.act === "double";
+    loss = mineDbl ? Math.max(0, cd.nd - dbl) : Math.max(0, dbl - cd.nd);
+    const bestV = shouldDbl ? `Double — CPU should ${cd.take ? "take" : "pass"}` : cd.tooGood ? "Don't double — too good, play for the gammon" : "Don't double yet";
+    const myV = mineDbl ? `Double to ${D.to}` : "Rolled without doubling";
+    rows = mineDbl === shouldDbl ? [{ lab: "Your decision — the right one", v: myV, eq: mineDbl ? dbl : cd.nd, sw: "best" }]
+      : [{ lab: "Your decision", v: myV, eq: mineDbl ? dbl : cd.nd, sw: "you" }, { lab: "Best", v: bestV, eq: shouldDbl ? dbl : cd.nd, sw: "best" }];
+    note = `Your winning chances ${pct(p[0])} · gammon wins ${pct(p[1])} · gammon losses ${pct(p[3])}. Equities are for you, per current cube.`;
+  }
+  if (D.loss == null) D.loss = loss;
+  return D.det = { rows, loss, note };
+}
+
+/* --- arrows (same look as Backgammon Academy: best solid blue, yours dashed orange) --- */
+function anchorXY(loc, end) {
+  if (loc === "bar") return [BARX + BARW / 2, MIDY + 58];
+  if (loc === "off") return [TRX + TRAYW / 2, BOT - 60];
+  const x = colX(loc) + PW / 2;
+  return loc <= 12 ? [x, BOT - (end ? 70 : 40)] : [x, TOP + (end ? 70 : 40)];
+}
+function groupMoves(steps) {
+  const mv = [];
+  steps.forEach(s => {
+    const m = mv.find(x => x.to === s[0] && !x.done);
+    if (m) { m.to = s[1]; if (s[1] === 0) m.done = true; } else mv.push({ from: s[0], to: s[1], done: s[1] === 0 });
+  });
+  return mv;
+}
+const ARW = { best: { c: "#3d9bff", dash: "" }, you: { c: "#ff9a3c", dash: "10 7" }, alt: { c: "#e6dfd0", dash: "" } };
+function arrowsSvg(sets0) {
+  let s = "";
+  const sets = sets0.map(a => groupMoves(a.steps)), mk = m => m.from + ">" + m.to;
+  const shared = sets.length === 2 ? new Set(sets[0].map(mk).filter(k => sets[1].some(m => mk(m) === k))) : new Set();
+  const list = [];
+  if (shared.size) sets[0].filter(m => shared.has(mk(m))).forEach(m => list.push({ m, st: { c: "#d9d4ca", dash: "" } }));
+  sets0.forEach((a, ai) => sets[ai].filter(m => !shared.has(mk(m))).forEach(m => list.push({ m, st: ARW[a.style] })));
+  list.forEach(({ m, st }) => {
+    const fl = locOf(0, m.from), tl = locOf(0, m.to);
+    const [x1, y1] = anchorXY(fl, false), [x2, y2] = anchorXY(tl, true);
+    const bothBot = (fl === "bar" || fl <= 12) && (tl === "off" || tl <= 12), bothTop = typeof fl === "number" && fl > 12 && typeof tl === "number" && tl > 12;
+    let cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+    if (bothBot) cy = Math.min(y1, y2) - 40 - Math.abs(x2 - x1) * 0.15;
+    else if (bothTop) cy = Math.max(y1, y2) + 40 + Math.abs(x2 - x1) * 0.15;
+    const ang = Math.atan2(y2 - cy, x2 - cx), hl = 13;
+    const p1 = [x2 - hl * Math.cos(ang - 0.45), y2 - hl * Math.sin(ang - 0.45)], p2 = [x2 - hl * Math.cos(ang + 0.45), y2 - hl * Math.sin(ang + 0.45)];
+    const d = `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`, hd = `M${p1[0]},${p1[1]} L${x2},${y2} L${p2[0]},${p2[1]}`;
+    s += `<path d="${d}" fill="none" stroke="#120c08" stroke-opacity=".9" stroke-width="9" stroke-linecap="round"/>`;
+    s += `<path d="${hd}" fill="none" stroke="#120c08" stroke-opacity=".9" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>`;
+    s += `<path d="${d}" fill="none" stroke="${st.c}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${st.dash}"/>`;
+    s += `<path d="${hd}" fill="none" stroke="${st.c}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  });
+  return s;
+}
+
+/* --- review mode --- */
+const canReviewNow = () => G && (G.phase === "over" || pending || (!busy && G.turn === 0 && (G.phase === "preroll" || G.phase === "moving")));
+function enterReview(list, opts) {
+  if (!list.length) { toast("Nothing to review yet — no graded decisions"); return false; }
+  RV = { all: list, order: "sev", list: sevSort(list), k: 0, view: { board: new Int8Array(52), diceShow: null, diceSide: 0, cube: 1, owner: 0, showCube: true },
+    arrows: [], sel: null, tok: 0, more: false, opts: opts || {}, prevStatus: $("status").textContent };
+  sel = null; dests = new Map(); hoverDest = null; hideTop = null; drag = null; L.F.innerHTML = "";
+  document.body.classList.add("reviewing"); $("game").classList.add("rv");
+  $("coach").hidden = true; $("rvcard").hidden = false;
+  $("logpane").querySelector("h3").textContent = "Decisions · worst first";
+  rvGo(Math.max(0, Math.min(list.length - 1, (opts && opts.start) || 0)));
+  return true;
+}
+function exitReview() {
+  if (!RV) return;
+  const o = RV.opts, prev = RV.prevStatus;
+  RV.tok++; RV = null; hideTop = null; L.F.innerHTML = "";
+  if ($("rvsheet").open) $("rvsheet").close();
+  document.body.classList.remove("reviewing"); $("game").classList.remove("rv");
+  $("rvcard").hidden = true; renderCoach();
+  $("logpane").querySelector("h3").textContent = "Moves";
+  diceSig = "";
+  if (o.fromLink) { try { history.replaceState(null, "", location.pathname); } catch (e) {} renderLog(); startLive(); }
+  else { renderLog(); setStatus(prev); render(); }
+  layout();
+}
+function rvGo(k) {
+  RV.tok++; hideTop = null; L.F.innerHTML = "";
+  RV.k = k; RV.sel = null; RV.more = false;
+  const D = RV.list[k], v = RV.view;
+  v.board = new Int8Array(D.before); v.cube = D.cube || 1; v.owner = D.owner || 0;
+  v.showCube = S.cube || D.kind === "cube" || v.cube > 1;
+  if (D.kind === "move") { moveDetail(D); v.diceShow = (D.dice[0] === D.dice[1] ? [D.dice[0], D.dice[0], D.dice[0], D.dice[0]] : D.dice).map(x => ({ v: x, used: false })); v.diceSide = 0; }
+  else { cubeDetail(D); v.diceShow = null; }
+  RV.arrows = compareArrows(D);
+  const what = D.kind === "move" ? `you rolled ${diceTxt(D.dice)}` : D.act === "take" || D.act === "pass" ? `CPU doubled to ${D.to}` : D.act === "double" ? "you doubled" : "you could double";
+  setStatus(`Review · Turn ${D.turn} · ${what}`);
+  renderRvCard(); render(); layout(); renderRvList();
+  $("rvPrev").disabled = k === 0;
+  $("rvNext").disabled = k === RV.list.length - 1;
+  document.body.classList.toggle("rv-single", RV.list.length === 1);
+}
+function compareArrows(D) {
+  if (D.kind !== "move") return [];
+  const d = moveDetail(D);
+  return d.same ? [{ steps: d.a[0].steps, style: "best" }] : [{ steps: d.a[0].steps, style: "best" }, { steps: d.mySteps, style: "you" }];
+}
+function renderRvCard() {
+  const D = RV.list[RV.k], el = $("rvcard"), n = RV.list.length;
+  const det = D.kind === "move" ? moveDetail(D) : cubeDetail(D), loss = det.loss, g = grade(loss);
+  const t = loss < 0.001 ? (D.kind === "cube" ? "Correct" : "Best play") : g.t;
+  let h = `<div class="rv-hd"><span class="pill ${g.c}">${t}</span><span class="rv-t">Turn ${D.turn} · ${D.kind === "move" ? diceTxt(D.dice) : "cube"}</span>${loss >= 0.001 ? `<span class="rv-loss num">${fmtL(loss)}</span>` : ""}<span class="rv-n num">${n > 1 ? `${RV.k + 1} of ${n}` : ""}</span></div>`;
+  const row = (p, sw, lab, mv, eq) => `<button class="rv-row" type="button" data-p="${p}" aria-pressed="${RV.sel === p}"><i class="sw ${sw}"></i><span class="lab"><small>${lab}</small><span class="mv">${mv}</span></span><span class="eq num">${fmtE(eq)}</span></button>`;
+  if (D.kind === "move") {
+    const a = det.a;
+    if (det.same) h += row("you", "best", "Your play — the best play", D.mv, det.myEq);
+    else h += row("you", "you", "Your play", D.mv, det.myEq) + row("0", "best", "Best play", BG.notation(a[0].steps), a[0].eq);
+    const alts = []; for (let i = 1; i < a.length && alts.length < 2; i++) if (i !== det.idx) alts.push(i);
+    if (RV.more) alts.forEach(i => h += row(String(i), "alt", `#${i + 1}`, BG.notation(a[i].steps), a[i].eq));
+    const tip = RV.sel != null ? "Tap it again to compare." : det.same ? "You found the best play. Tap it to watch it." : "Blue is the best play, dashed orange is yours. Tap one to watch it.";
+    h += `<div class="rv-foot"><span class="rv-note">${tip}</span>${alts.length ? `<button class="btn btn-plain rv-more" type="button">${RV.more ? "Fewer" : "Other plays"}</button>` : ""}</div>`;
+  } else {
+    det.rows.forEach(r => h += `<div class="rv-row static"><i class="sw ${r.sw}"></i><span class="lab"><small>${r.lab}</small><span class="mv">${r.v}</span></span><span class="eq num">${fmtE(r.eq)}</span></div>`);
+    h += `<div class="rv-foot"><span class="rv-note">${det.note}</span></div>`;
+  }
+  el.innerHTML = h;
+  el.querySelectorAll("button[data-p]").forEach(b => b.onclick = () => rvShow(RV.sel === b.dataset.p ? null : b.dataset.p));
+  const mb = el.querySelector(".rv-more"); if (mb) mb.onclick = () => { RV.more = !RV.more; renderRvCard(); layout(); };
+}
+async function rvShow(p) {
+  const tok = ++RV.tok, D = RV.list[RV.k], det = moveDetail(D), v = RV.view;
+  RV.sel = p; renderRvCard();
+  v.board = new Int8Array(D.before); v.diceShow.forEach(x => x.used = false); hideTop = null; L.F.innerHTML = "";
+  if (p == null) { RV.arrows = compareArrows(D); render(); return; }
+  const steps = p === "you" ? det.mySteps : det.a[+p].steps, style = p === "you" ? (det.same ? "best" : "you") : p === "0" ? "best" : "alt";
+  RV.arrows = []; render();
+  const alive = () => RV && RV.tok === tok;
+  await new Promise(r => setTimeout(r, 150));
+  for (const st of steps) {
+    if (!alive()) return;
+    const fl = locOf(0, st[0]), tl = locOf(0, Math.max(0, st[0] - st[3]));
+    const fromXY = topXY(0, fl);
+    v.board = BG.applyStep(v.board, st[0], st[3]);
+    const dd = v.diceShow.find(x => x.v === st[3] && !x.used); if (dd) dd.used = true;
+    hideTop = { side: 0, loc: tl }; render();
+    await animateFly(0, fromXY, topXY(0, tl), 340, alive);
+    if (!alive()) return;
+    hideTop = null; render();
+    await new Promise(r => setTimeout(r, 110));
+  }
+  if (!alive()) return;
+  RV.arrows = [{ steps, style }]; render();
+}
+function rvItemHtml(D, k) {
+  const loss = D.loss || 0, g = grade(loss), t = loss < 0.001 ? (D.kind === "cube" ? "Correct" : "Best") : g.t;
+  const what = D.kind === "move" ? `${diceTxt(D.dice)}: ${D.mv}` : D.act === "take" ? "Took a double" : D.act === "pass" ? "Passed a double" : D.act === "double" ? `Doubled to ${D.to}` : "Missed a double";
+  return `<li><button class="rvitem${k === RV.k ? " cur" : ""}" type="button" data-k="${k}"><span class="pill ${g.c}">${t}</span><span class="rvi-t"><small>Turn ${D.turn}</small><span class="mv">${what}</span></span><span class="num rvi-l">${loss >= 0.001 ? fmtL(loss) : ""}</span></button></li>`;
+}
+function renderRvList() {
+  const html = RV.list.map(rvItemHtml).join("");
+  const side = $("logSide"); side.innerHTML = html;
+  const cur = side.querySelector(".cur");
+  if (cur && side.clientHeight) { const t = cur.offsetTop; if (t < side.scrollTop || t + cur.offsetHeight > side.scrollTop + side.clientHeight) side.scrollTop = Math.max(0, t - side.clientHeight / 2); }
+  $("rvItems").innerHTML = html;
+  document.querySelectorAll("[data-order]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.order === RV.order)));
+  document.querySelectorAll(".rvitem").forEach(b => b.onclick = () => { if ($("rvsheet").open) $("rvsheet").close(); rvGo(+b.dataset.k); });
+}
+function setOrder(o) {
+  if (!RV || RV.order === o) return;
+  const D = RV.list[RV.k];
+  RV.order = o; RV.list = o === "sev" ? sevSort(RV.all) : RV.all.slice().sort((a, b) => a.turn - b.turn || a.i - b.i);
+  $("logpane").querySelector("h3").textContent = o === "sev" ? "Decisions · worst first" : "Decisions · in order";
+  rvGo(RV.list.indexOf(D));
+}
+document.querySelectorAll("[data-order]").forEach(b => b.onclick = () => setOrder(b.dataset.order));
+$("rvDone").onclick = exitReview;
+$("rvPrev").onclick = () => { if (RV && RV.k > 0) rvGo(RV.k - 1); };
+$("rvNext").onclick = () => { if (RV && RV.k < RV.list.length - 1) rvGo(RV.k + 1); };
+$("rvListBtn").onclick = () => { renderRvList(); openSheet("rvsheet"); };
+function reviewGame(rec, opts) {
+  toast("Analyzing…");
+  setTimeout(() => {
+    let list;
+    try { list = buildDecisions(rec); } catch (e) { toast("Couldn't build the review"); return; }
+    if (rec.id) saveArchiveRec(rec);
+    $("toast").classList.remove("show");
+    enterReview(list, opts);
+  }, 30);
+}
+function reviewCurrent() {
+  if (!canReviewNow()) { toast("Review is available on your turn or after the game"); return; }
+  reviewGame(curRec(), {});
+}
+
+/* --- saved games (last 20 finished games, on this device) --- */
+const LSG = "backgammon.games.v1";
+function loadArchive() { try { const a = JSON.parse(localStorage.getItem(LSG) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function writeArchive(a) { try { localStorage.setItem(LSG, JSON.stringify(a.slice(-20))); } catch (e) {} }
+function compactHist(hist) { return hist.map(h => { const o = Object.assign({}, h); if (o.before) o.before = hx(hb(o.before)); if (o.after) o.after = hx(hb(o.after)); return o; }); }
+function archiveGame() {
+  if (!G.hist || !G.hist.length) return;
+  const a = loadArchive(), id = Date.now();
+  a.push({ id, ts: id, over: G.over, cube: G.cube, level: S.level, hist: compactHist(G.hist) });
+  writeArchive(a);
+}
+function saveArchiveRec(rec) {
+  const a = loadArchive(), i = a.findIndex(x => x.id === rec.id);
+  if (i >= 0) { a[i].hist = compactHist(rec.hist); writeArchive(a); }
+}
+function gameErrors(hist) {
+  const ls = hist.map(h => h.t === "move" ? (h.who === "me" && h.ev ? h.ev.loss : null) : (h.who === "me" && h.loss != null ? h.loss : null)).filter(x => x != null);
+  return { n: ls.length, errs: ls.filter(x => x >= 0.04).length, rate: ls.length ? ls.reduce((s, x) => s + x, 0) / ls.length * 1000 : null };
+}
+function renderPast() {
+  const a = loadArchive().slice().reverse(), el = $("pastList");
+  if (!a.length) { el.innerHTML = `<p class="note" style="margin-top:0">Finished games will show up here.</p>`; return; }
+  const fmt = new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  el.innerHTML = a.map(g => {
+    const o = g.over || {}, kind = o.byPass ? "on a pass" : o.value === 3 ? "backgammon" : o.value === 2 ? "gammon" : "single";
+    const e = gameErrors(g.hist);
+    return `<div class="past"><div class="past-hd"><b>${o.winner === 0 ? "You won" : "CPU won"} ${plural(o.pts || 1, "pt")} <span class="past-k">· ${kind}</span></b>
+      <small>${fmt.format(new Date(g.ts))} · ${LEVELS[g.level] || "Strong"}${e.rate != null ? ` · ${plural(e.errs, "error")}` : ""}</small></div>
+      <div class="past-btns"><button class="btn btn-tinted" data-pr="${g.id}">Review</button><button class="btn btn-plain" data-pc="${g.id}">Ask Claude</button></div></div>`;
+  }).join("");
+  const find = id => loadArchive().find(x => String(x.id) === id);
+  el.querySelectorAll("[data-pr]").forEach(b => b.onclick = () => {
+    const g = find(b.dataset.pr); if (!g) return;
+    if (!canReviewNow()) { toast("Finish your move first, then review"); return; }
+    $("stats").close(); reviewGame(g, {});
+  });
+  el.querySelectorAll("[data-pc]").forEach(b => b.onclick = () => { const g = find(b.dataset.pc); if (!g) return; $("stats").close(); openExport(g); });
+}
 
 /* ---------- sheets ---------- */
 const anySheetOpen = () => [...document.querySelectorAll("dialog.sheet")].some(d => d.open);
@@ -1689,7 +2124,8 @@ let tab = "game";
 function setTab(t) {
   tab = t;
   document.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tab === t)));
-  $("tabGame").hidden = t !== "game"; $("tabAll").hidden = t !== "all";
+  $("tabGame").hidden = t !== "game"; $("tabAll").hidden = t !== "all"; $("tabPast").hidden = t !== "past";
+  if (t === "past") renderPast();
 }
 document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => setTab(b.dataset.tab));
 function renderStatsSheet() {
@@ -1699,6 +2135,8 @@ function renderStatsSheet() {
     `<div class="stats"><div class="stat"><b>${r.rate.toFixed(1)}</b><span>Error rate · ${r.label}</span></div><div class="stat"><b>${r.n}</b><span>Decisions graded</span></div><div class="stat"><b>${r.inacc}·${r.mist}·${r.blun}</b><span>Inacc · mist · blund</span></div></div>
      <p class="note">Error rate is equity lost per decision, in thousandths of a point.</p>`;
   $("logSheet").innerHTML = logHtml();
+  $("bVisual").disabled = !canReviewNow();
+  if (tab === "past") renderPast();
   const rate = ST.dec ? (ST.eqLost / ST.dec * 1000).toFixed(1) : "—", lost = ST.games - ST.wins;
   $("allStats").innerHTML = [
     [ST.games, "Games"], [`${ST.wins}–${lost}`, "Won–lost"], [ST.games ? pct(ST.wins / ST.games) : "—", "Win rate"],
@@ -1707,6 +2145,7 @@ function renderStatsSheet() {
   ].map(x => `<div class="stat"><b>${x[0]}</b><span>${x[1]}</span></div>`).join("");
 }
 $("bExport").onclick = () => { $("stats").close(); openExport(); };
+$("bVisual").onclick = () => { $("stats").close(); reviewCurrent(); };
 $("bReset").onclick = async () => {
   $("stats").close();
   if (!await ask("Reset all stats?", "This clears your all-time stats and the running score.", "Reset")) return;
@@ -1725,11 +2164,17 @@ $("sTrainer").onchange = e => { S.trainer = e.target.checked; syncSettings(); re
 $("sPause").onchange = e => { S.pause = e.target.checked; save(); };
 $("sWin").onchange = e => { S.winbar = e.target.checked; renderStrips(); save(); };
 $("sCube").onchange = e => { S.cube = e.target.checked; diceSig = ""; render(); save(); };
-$("settings").addEventListener("close", () => { if (G && G.phase === "preroll" && G.turn === 0 && !busy) humanTurnStart(); });
+$("settings").addEventListener("close", () => { if (!RV && G && G.phase === "preroll" && G.turn === 0 && !busy) humanTurnStart(); });
 $("bNew").onclick = () => { $("settings").close(); newGame(); };
 $("bHint").onclick = showHint;
 document.addEventListener("keydown", e => {
   if (anySheetOpen() || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (RV) {
+    if (e.key === "ArrowRight") $("rvNext").onclick();
+    else if (e.key === "ArrowLeft") $("rvPrev").onclick();
+    else if (e.key === "Escape") exitReview();
+    return;
+  }
   const click = id => { const b = $(id); if (!b.hidden && !b.disabled && b.onclick) { e.preventDefault(); b.onclick(); } };
   if (e.key === "Enter") click("bMain");
   else if (e.key === "Backspace" || e.key === "u") click("bUndo");
@@ -1742,37 +2187,53 @@ function layout() {
   const game = $("game"), vh = window.innerHeight, vw = document.documentElement.clientWidth;
   const used = document.querySelector(".hdr").offsetHeight + $("status").offsetHeight + 12 + $("actions").offsetHeight + 32;
   const availH = Math.max(160, vh - used - 4), availW = Math.min(vw, 960) - 32, asp = BW / BH;
-  const strips = 2 * 40, coachH = S.trainer ? 64 : 0, gaps = 8 * (S.trainer ? 3 : 2);
+  const strips = RV && innerHeight < 500 ? 0 : 2 * 40, coachH = RV ? ($("rvcard").offsetHeight || 170) : S.trainer ? 64 : 0, gaps = 8 * (RV || S.trainer ? 3 : 2);
   const wStackRaw = Math.min(availW, (availH - strips - coachH - gaps) * asp), wStack = Math.max(240, wStackRaw);
-  const wSide = Math.min(availW - 280, availH * asp);
+  const sideW = RV ? 320 : 260;
+  game.style.setProperty("--sidew", sideW + "px");
+  const wSide = Math.min(availW - sideW - 20, availH * asp);
   const side = vw >= 640 && wSide > wStackRaw * 1.04;
   game.classList.toggle("side", side);
   game.classList.toggle("compact", side && availH < 380);
   const bw = Math.floor(side ? wSide : wStack);
   game.style.setProperty("--bw", bw + "px");
   game.style.setProperty("--bh", Math.floor(bw / asp) + "px");
-  const ls = $("logSide"); ls.scrollTop = ls.scrollHeight;
+  const lp = $("logpane"); lp.style.display = "";
+  if (RV && side && lp.offsetHeight < 140) lp.style.display = "none";
+  const ls = $("logSide"); if (!RV) ls.scrollTop = ls.scrollHeight;
 }
 window.addEventListener("resize", layout);
 if (window.visualViewport) visualViewport.addEventListener("resize", layout);
 
 /* ---------- boot ---------- */
-(function boot() {
-  staticBoard();
-  let g = store.game;
-  if (g && g.phase && g.phase !== "opening") { try { G = restore(g); } catch (e) { G = null; } }
-  renderCoach(); layout();
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
-  if (!G) { G = freshGame(); winP = [0.5, 0.13, 0.005, 0.13, 0.005]; render(); renderLog(); openingRoll(); return; }
+let freshBoot = false;
+function startLive() {
+  if (freshBoot) { freshBoot = false; winP = [0.5, 0.13, 0.005, 0.13, 0.005]; render(); renderLog(); openingRoll(); return; }
   renderLog(); render(); updateWin(G.phase === "over" ? null : preRollProbs(G.turn === 1 ? 1 : 0));
   if (G.phase === "over") { setStatus("Game over"); setButtons({ main: "New game", onMain: () => newGame() }); }
   else if (G.phase === "preroll") humanTurnStart();
   else if (G.phase === "moving") { G.board = new Int8Array(G.turnStart); G.diceShow = null; startHumanMove(G.dice); }
   else if (G.phase === "offered") cpuOffers(true);
   else cpuTurnStart();
+}
+(function boot() {
+  staticBoard();
+  let g = store.game;
+  if (g && g.phase && g.phase !== "opening") { try { G = restore(g); } catch (e) { G = null; } }
+  if (!G) { G = freshGame(); freshBoot = true; }
+  renderCoach(); layout();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
+  let r = null; try { r = new URLSearchParams(location.search).get("r"); } catch (e) {}
+  if (r) {
+    const D = decodeLink(r);
+    if (D && enterReview([D], { fromLink: true })) return;
+    try { history.replaceState(null, "", location.pathname); } catch (e) {}
+    setTimeout(() => toast("That review link looks damaged"), 400);
+  }
+  startLive();
 })();
 // test hook
-window.__bg = { get G() { return G; }, BG, NET, newGame, humanRoll, commitHuman, showHint, ensureAnalysis, playHint, humanAnswer, cpuTurnStart, onTap, layout, get busy() { return busy; }, get pending() { return pending; }, get sel() { return sel; }, get dests() { return dests; } };
+window.__bg = { get RV() { return RV; }, enterReview, exitReview, reviewCurrent, decodeLink, linkFor, buildDecisions, buildExport, curRec, loadArchive, rvGo, rvShow, get G() { return G; }, BG, NET, newGame, humanRoll, commitHuman, showHint, ensureAnalysis, playHint, humanAnswer, cpuTurnStart, onTap, layout, get busy() { return busy; }, get pending() { return pending; }, get sel() { return sel; }, get dests() { return dests; } };
 </script>
 </body>
 </html>
