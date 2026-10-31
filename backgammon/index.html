@@ -1564,7 +1564,7 @@ function posStr(arr) {
 }
 const ownerTxt = o => o === 0 ? "centered" : o === 1 ? "I own it" : "CPU owns it";
 const eqTxt = e => (e >= 0 ? "+" : "-") + Math.abs(e).toFixed(3);
-const REVIEW_PROMPT = `You are a backgammon grandmaster and an expert teacher. Review the money game below, which I (ivory) played against a computer opponent (ebony). I want to get better, so be direct and specific: tell me plainly where I went wrong and why, and don't spend time praising moves that were merely fine.
+const REVIEW_PROMPT = `You are a backgammon grandmaster and a patient, expert teacher. Review the money game below, which I (ivory) played against a computer opponent (ebony). I'm still learning, so explain things in plain language a beginner can follow. Be honest and specific about my mistakes, but focus on the lessons that will help me most rather than listing every small error.
 
 How to read the data:
 - Points are numbered 1-24 from my side. I move from 24 toward 1 and bear off from my home board (points 1-6). The CPU moves the other way; its home board is my 19-24.
@@ -1572,15 +1572,21 @@ How to read the data:
 - Before each of my decisions the position is listed in MY numbering as point:checkers for both sides, plus pip counts and cube state.
 - "Engine" lines come from the app's built-in evaluator: a small neural net with one roll of lookahead. Equities are cubeless, per 1-point stake, from my point of view. Treat them as a strong hint, not ground truth. Where you think the engine is wrong, say so and explain why.
 
+How to explain:
+- Whenever you use a backgammon term (blot, anchor, prime, builder, slot, pip count, race, timing, gammon, take point, equity, and so on), define it in a few words the first time it comes up.
+- Describe positions in everyday words: which checkers are in danger, what each side is trying to build, and who is ahead in the race. Don't assume I can picture the board from point numbers alone.
+- When you mention an equity number, say what it means in practice (for example, "about 0.1 points per game, a sizable mistake").
+- Give me rules of thumb I can remember at the table, and say when they usually don't apply.
+
 Please give me:
 1. Game summary: how the game was won or lost, in a few sentences, with the turning points.
-2. My key decisions: the 4-8 checker plays or cube decisions that cost the most or teach the most. For each, describe the position in plain terms (game plan, race, threats, timing), what I played, what was better, and the principle behind it. Work from the position data rather than guessing.
-3. Cube handling: every double, take and pass, plus any doubles I missed, with the reasoning (market losers, gammon chances, take points).
-4. Patterns: recurring tendencies in my play this game, good and bad.
-5. What to work on: 3-5 concrete, prioritized study topics or drills for my next games.
+2. My key decisions: the 3-5 checker plays or cube decisions that teach the most. For each, describe the position, what I played, what was better, and why, ending with a one-sentence takeaway. Work from the position data rather than guessing.
+3. Cube decisions: every double, take and pass, plus any doubles I missed, explained simply (when doubling makes sense, and why some doubles should be taken and others passed).
+4. What I did well: one or two things to keep doing.
+5. What to work on: my top 3 lessons from this game, in priority order, each with a simple drill or habit to practice.
 6. A one-line grade for this game and why.
 
-Pitch the explanations at a serious club player. If anything in the record is ambiguous, say what you assumed.`;
+If anything in the record is ambiguous, say what you assumed.`;
 function buildExport() {
   fillMissingEvals();
   const lines = [];
