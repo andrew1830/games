@@ -88,16 +88,23 @@ dialog.sheet[open]{animation:sheet-in var(--dur) var(--ease)}
 /* ===== end house v1 ===== */
 
 /* ===== play surface ===== */
-.surface{width:min(100%,calc((100dvh - 250px) * 360 / 560),420px);min-width:240px;
-  border-radius:var(--r-md);overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.18)}
-.surface canvas{display:block;width:100%;aspect-ratio:360/560;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+/* full-bleed layout: the field fills the screen, the frame floats over it */
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+.hdr{position:fixed;left:0;right:0;top:0}
+.actions{position:fixed;left:0;right:0;bottom:0;z-index:10}
+.main{position:fixed;inset:0;display:block;padding:0;margin:0;max-width:none}
+.surface{position:absolute;inset:0}
+.surface canvas{display:block;width:100%;height:100%;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+.status{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 68px);transform:translateX(-50%);z-index:9;
+  margin:0;min-height:0;padding:4px 14px;border-radius:999px;font-size:14px;font-weight:500;color:var(--text);white-space:nowrap;
+  background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
 .sheet-bd .result small{display:block;font-size:15px;font-weight:500;color:var(--text-2);letter-spacing:0;margin-top:2px}
 .sheet-bd .stats{margin:var(--s3) 0 var(--s5)}
 .sheet-bd .btn{width:100%}
 </style>
 </head>
 <body>
-<header class="hdr">
+<header class="hdr" id="hdr">
   <a class="back" href="../">← All games</a>
   <h1 class="title">Flap</h1>
   <div class="hdr-actions">
@@ -107,7 +114,7 @@ dialog.sheet[open]{animation:sheet-in var(--dur) var(--ease)}
 </header>
 <p class="status" id="status" aria-live="polite">Tap to start</p>
 <main class="main"><div class="surface"><canvas id="cv" aria-label="Game area. Tap to flap."></canvas></div></main>
-<nav class="actions">
+<nav class="actions" id="bar">
   <button class="btn btn-tinted" id="pauseBtn" disabled>Pause</button>
   <span class="spacer"></span>
   <button class="btn btn-primary" id="flapBtn">Flap</button>
@@ -158,12 +165,14 @@ dialog.sheet[open]{animation:sheet-in var(--dur) var(--ease)}
 
 <script>
 /*CORE*/
-const W=360,H=560,GROUND=64,BAT_X=96,R=12,GAP=156,PIPE_W=58,SPACING=206,SPEED=2.4,GRAV=0.38,FLAP=-6.7,MAXV=9,MARGIN=48,MAXSHIFT=130;
+let W=360,H=560,GROUND=64,BAT_X=96,TOP=0; // world size in game units; TOP = space under the top bar, GROUND = ground depth incl. under the bottom bar
+const R=12,GAP=156,PIPE_W=58,SPACING=206,SPEED=2.4,GRAV=0.38,FLAP=-6.7,MAXV=9,MARGIN=48,MAXSHIFT=130;
+function setWorld(w,h,top,ground){W=w;H=h;TOP=top;GROUND=ground;BAT_X=Math.max(96,Math.min(190,w*.27));}
 function newGame(rng){
   return {y:H/2-30,vy:0,pipes:[],score:0,frames:0,scroll:0,flapT:0,dead:false,over:false,started:false,lastGap:null,rng:rng||Math.random};
 }
 function spawn(g){
-  const lo=MARGIN+GAP/2, hi=H-GROUND-MARGIN-GAP/2;
+  const lo=TOP+MARGIN+GAP/2, hi=Math.max(lo,H-GROUND-MARGIN-GAP/2);
   let c=lo+g.rng()*(hi-lo);
   if(g.lastGap!=null){
     c=Math.max(g.lastGap-MAXSHIFT,Math.min(g.lastGap+MAXSHIFT,c));
@@ -206,7 +215,7 @@ function step(g,flap){
   if(flap){g.vy=FLAP;g.flapT=14;}
   g.vy=Math.min(MAXV,g.vy+GRAV);
   g.y+=g.vy;
-  if(g.y-R<0){g.y=R;if(g.vy<0)g.vy=0;}
+  if(g.y-R<TOP){g.y=TOP+R;if(g.vy<0)g.vy=0;}
   let ev='';
   for(const p of g.pipes){
     p.x-=SPEED;
@@ -302,20 +311,33 @@ $('resetStats').addEventListener('click',()=>{stats={best:0,games:0,total:0};sav
 
 /* ---------- rendering ---------- */
 const clouds=[{x:40,y:150,r:20,s:.12},{x:210,y:230,r:26,s:.09},{x:310,y:110,r:16,s:.15},{x:120,y:330,r:18,s:.07}];
+let devScale=1;
 function resize(){
   const r=cv.getBoundingClientRect(); const dpr=Math.min(window.devicePixelRatio||1,3);
-  cv.width=Math.max(1,Math.round(r.width*dpr)); cv.height=Math.max(1,Math.round(r.height*dpr));
+  const cw=Math.max(1,r.width), ch=Math.max(1,r.height);
+  cv.width=Math.round(cw*dpr); cv.height=Math.round(ch*dpr);
+  // world height ~580 units; on narrow screens keep at least 340 units of width instead
+  let sc=ch/580, w=cw/sc;
+  if(w<340){sc=cw/340; w=340;}
+  const h=ch/sc;
+  setWorld(w,h,$('hdr').offsetHeight/sc,$('bar').offsetHeight/sc+36);
+  devScale=sc*dpr;
+  // keep a game in progress inside the new bounds
+  const lo=TOP+MARGIN+GAP/2, hi=Math.max(lo,H-GROUND-MARGIN-GAP/2), cl=v=>Math.max(lo,Math.min(hi,v));
+  for(const p of g.pipes) p.gap=cl(p.gap);
+  if(g.lastGap!=null) g.lastGap=cl(g.lastGap);
+  g.y=g.over?H-GROUND-R:Math.max(TOP+R,Math.min(H-GROUND-R-1,g.y));
 }
 if('ResizeObserver' in window) new ResizeObserver(resize).observe(cv); else addEventListener('resize',resize);
 resize();
 
 function ridge(off,base,amp,color,speed){
   ctx.fillStyle=color; ctx.beginPath(); ctx.moveTo(0,H-GROUND);
-  for(let x=0;x<=W;x+=6){
+  for(let x=0;x<=W+12;x+=6){
     const o=x+off*speed;
     ctx.lineTo(x,base+Math.sin(o*.018)*amp+Math.sin(o*.007+1.3)*amp*1.4+Math.sin(o*.041)*amp*.25);
   }
-  ctx.lineTo(W,H-GROUND); ctx.closePath(); ctx.fill();
+  ctx.lineTo(W+12,H-GROUND); ctx.closePath(); ctx.fill();
 }
 function pillar(x,y0,y1,capAtBottom){
   const h=y1-y0; if(h<=0) return;
@@ -361,19 +383,20 @@ function bat(x,y,vy,lift,dead){
   ctx.restore();
 }
 function draw(){
-  const s=cv.width/W;
+  const s=devScale;
   ctx.setTransform(s,0,0,s,0,0);
   let sx=0,sy=0; if(shake>0&&!reduceMotion){sx=(Math.random()-.5)*shake;sy=(Math.random()-.5)*shake;shake=Math.max(0,shake-.6);}
   ctx.translate(sx,sy);
   // sky
   const sky=ctx.createLinearGradient(0,0,0,H-GROUND);
   sky.addColorStop(0,'#4ec0ea'); sky.addColorStop(.7,'#9fdcf2'); sky.addColorStop(1,'#d8f2e8');
-  ctx.fillStyle=sky; ctx.fillRect(-10,-10,W+20,H);
+  ctx.fillStyle=sky; ctx.fillRect(-10,-10,W+20,H+20);
   // clouds drift slowly
   ctx.fillStyle='rgba(255,255,255,.85)';
   for(const c of clouds){
     const cx=((c.x-g.scroll*c.s)%(W+160)+(W+160))%(W+160)-80;
-    ctx.beginPath(); ctx.arc(cx,c.y,c.r,0,Math.PI*2); ctx.arc(cx+c.r*.9,c.y+c.r*.2,c.r*.8,0,Math.PI*2); ctx.arc(cx-c.r*.9,c.y+c.r*.25,c.r*.7,0,Math.PI*2); ctx.fill();
+    const cy=c.y*H/560;
+    ctx.beginPath(); ctx.arc(cx,cy,c.r,0,Math.PI*2); ctx.arc(cx+c.r*.9,cy+c.r*.2,c.r*.8,0,Math.PI*2); ctx.arc(cx-c.r*.9,cy+c.r*.25,c.r*.7,0,Math.PI*2); ctx.fill();
   }
   ridge(g.scroll,H-GROUND-92,14,'#b9e6a0',.15);
   ridge(g.scroll,H-GROUND-46,12,'#8fd47a',.35);
@@ -388,7 +411,7 @@ function draw(){
   ctx.fillStyle='#4a8f2f'; ctx.fillRect(-10,H-GROUND,W+20,3); ctx.fillRect(-10,H-GROUND+12,W+20,2);
   ctx.fillStyle='#c9c07a';
   const off=g.scroll%32;
-  for(let x=-off;x<W+32;x+=32){ctx.beginPath();ctx.moveTo(x,H-GROUND+14);ctx.lineTo(x+16,H-GROUND+14);ctx.lineTo(x+4,H-GROUND+GROUND);ctx.lineTo(x-12,H-GROUND+GROUND);ctx.closePath();ctx.fill();}
+  for(let x=-off;x<W+32;x+=32){ctx.beginPath();ctx.moveTo(x,H-GROUND+14);ctx.lineTo(x+16,H-GROUND+14);ctx.lineTo(x+4,H+10);ctx.lineTo(x-12,H+10);ctx.closePath();ctx.fill();}
   // bat
   const by=g.started?g.y:g.y+Math.sin(g.frames*.1)*5;
   const lift=g.dead?.2:g.started?(g.flapT>7?1:g.flapT>0?-.8:.25):Math.sin(g.frames*.28);
@@ -396,13 +419,12 @@ function draw(){
   // score
   if(g.started||g.dead){
     ctx.font='700 46px Inter,-apple-system,system-ui,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
-    ctx.lineWidth=7; ctx.lineJoin='round'; ctx.strokeStyle='#4a3a2a'; ctx.strokeText(g.score,W/2,86);
-    ctx.fillStyle='#fff'; ctx.fillText(g.score,W/2,86);
-  } else {
-    ctx.font='700 18px Inter,-apple-system,system-ui,sans-serif'; ctx.textAlign='center'; ctx.lineJoin='round';
-    ctx.lineWidth=5; ctx.strokeStyle='#4a3a2a'; ctx.strokeText('Tap to flap',W/2,H/2+70);
-    ctx.fillStyle='#fff'; ctx.fillText('Tap to flap',W/2,H/2+70);
-    if(stats.best>0){ctx.font='600 14px Inter,-apple-system,system-ui,sans-serif';ctx.lineWidth=4;ctx.strokeText('Best '+stats.best,W/2,H/2+94);ctx.fillText('Best '+stats.best,W/2,H/2+94);}
+    ctx.lineWidth=7; ctx.lineJoin='round'; ctx.strokeStyle='#4a3a2a'; ctx.strokeText(g.score,W/2,TOP+100);
+    ctx.fillStyle='#fff'; ctx.fillText(g.score,W/2,TOP+100);
+  } else if(stats.best>0){
+    ctx.font='600 15px Inter,-apple-system,system-ui,sans-serif'; ctx.textAlign='center'; ctx.lineJoin='round';
+    ctx.lineWidth=4; ctx.strokeStyle='#4a3a2a'; ctx.strokeText('Best '+stats.best,W/2,H/2+64);
+    ctx.fillStyle='#fff'; ctx.fillText('Best '+stats.best,W/2,H/2+64);
   }
   if(paused){
     ctx.fillStyle='rgba(10,5,25,.5)'; ctx.fillRect(-10,-10,W+20,H+20);
