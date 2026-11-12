@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tri-Bond</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ===== house v1 — copy verbatim, do not edit per game ===== */
+:root{
+  --font-ui:-apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;
+  --bg:#f5f5f7;--surface:#fff;--surface-2:#ebebef;--text:#1d1d1f;--text-2:#6e6e73;
+  --hairline:rgba(0,0,0,.1);--accent:#0071e3;--on-accent:#fff;--accent-tint:rgba(0,113,227,.12);
+  --danger:#d70015;--good:#248a3d;--bar:rgba(245,245,247,.72);--scrim:rgba(0,0,0,.32);
+  --shadow:0 10px 40px rgba(0,0,0,.14);
+  --r-sm:10px;--r-md:14px;--r-lg:22px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;
+  --ease:cubic-bezier(.2,.8,.2,1);--dur:220ms;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#000;--surface:#1c1c1e;--surface-2:#2c2c2e;--text:#f5f5f7;--text-2:#98989d;
+  --hairline:rgba(255,255,255,.14);--accent:#0a84ff;--accent-tint:rgba(10,132,255,.18);
+  --danger:#ff453a;--good:#30d158;--bar:rgba(0,0,0,.6);--scrim:rgba(0,0,0,.55);
+  --shadow:0 10px 40px rgba(0,0,0,.6);
+}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.4 var(--font-ui);
+  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+body{min-height:100dvh;display:flex;flex-direction:column}
+.hdr{position:sticky;top:0;z-index:10;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+  gap:var(--s2);padding:calc(env(safe-area-inset-top) + var(--s2)) var(--s4) var(--s2);
+  background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:.5px solid var(--hairline)}
+.back{justify-self:start;color:var(--text-2);text-decoration:none;font-size:14px;padding:var(--s2) 0}
+.title{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+.hdr-actions{justify-self:end;display:flex;gap:var(--s1)}
+.icon-btn{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:50%;
+  background:transparent;color:var(--text);cursor:pointer;transition:background var(--dur) var(--ease)}
+.icon-btn:hover{background:var(--surface-2)}
+.icon-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.status{text-align:center;color:var(--text-2);font-size:15px;min-height:1.4em;margin:var(--s3) var(--s4) 0}
+.main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:var(--s4);width:100%;max-width:960px;margin:0 auto}
+.actions{position:sticky;bottom:0;display:flex;gap:var(--s2);justify-content:center;
+  padding:var(--s3) var(--s4) calc(env(safe-area-inset-bottom) + var(--s3));
+  background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  border-top:.5px solid var(--hairline)}
+.actions .spacer{flex:1}
+.btn{min-height:44px;padding:0 var(--s5);border:0;border-radius:var(--r-md);font:600 16px var(--font-ui);
+  cursor:pointer;transition:transform 120ms var(--ease),opacity var(--dur) var(--ease),background var(--dur) var(--ease)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.35;cursor:default;transform:none}
+.btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-tinted{background:var(--accent-tint);color:var(--accent)}
+.btn-plain{background:transparent;color:var(--accent)}
+.btn:focus-visible,.icon-btn:focus-visible,.back:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+/* sheets: <dialog class="sheet"> — bottom sheet on phones, centered card on desktop */
+dialog.sheet{border:0;padding:0;background:var(--surface);color:var(--text);box-shadow:var(--shadow);
+  width:100%;max-width:520px;max-height:85dvh;border-radius:var(--r-lg) var(--r-lg) 0 0;
+  margin:auto auto 0;overflow:auto}
+@media (min-width:700px){dialog.sheet{margin:auto;border-radius:var(--r-lg)}}
+dialog.sheet::backdrop{background:var(--scrim)}
+dialog.sheet[open]{animation:sheet-in var(--dur) var(--ease)}
+@keyframes sheet-in{from{transform:translateY(24px);opacity:0}}
+.sheet-hd{display:flex;align-items:center;justify-content:space-between;padding:var(--s4) var(--s4) 0}
+.sheet-hd h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em}
+.sheet-bd{padding:var(--s3) var(--s4) calc(env(safe-area-inset-bottom) + var(--s5))}
+.sheet-bd h3{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-2);margin:var(--s5) 0 var(--s2)}
+.sheet-bd p,.sheet-bd li{color:var(--text);font-size:15px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:var(--s2)}
+.stat{background:var(--surface-2);border-radius:var(--r-md);padding:var(--s3)}
+.stat b{display:block;font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--text-2)}
+.result{font-size:34px;font-weight:700;letter-spacing:-.02em;text-align:center;margin:var(--s3) 0}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translate(-50%,8px);
+  background:var(--text);color:var(--bg);padding:var(--s2) var(--s4);border-radius:999px;font-size:15px;font-weight:500;
+  opacity:0;pointer-events:none;transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:var(--r-sm);padding:2px}
+.seg button{min-height:36px;padding:0 var(--s4);border:0;border-radius:8px;background:transparent;color:var(--text);font:500 14px var(--font-ui);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;transition-duration:1ms!important}}
+/* ===== end house v1 ===== */
+
+/* ----- frame additions (house tokens only) ----- */
+.main{justify-content:flex-start;padding-top:var(--s3)}
+.game{width:100%;max-width:460px;display:flex;flex-direction:column;gap:var(--s3)}
+.col-play{display:flex;flex-direction:column;gap:var(--s3)}
+.players{display:flex;gap:var(--s2);justify-content:center}
+.pill{display:flex;align-items:center;gap:var(--s2);background:var(--surface);border:.5px solid var(--hairline);
+  border-radius:999px;padding:6px var(--s3);font-size:14px;color:var(--text-2);transition:box-shadow var(--dur) var(--ease)}
+.pill b{color:var(--text);font-weight:600}
+.pill.on{box-shadow:0 0 0 2px var(--accent)}
+.pill i{width:12px;height:12px;border-radius:50%;display:inline-block}
+.answer{display:flex;flex-direction:column;gap:var(--s2)}
+.field{width:100%;min-height:48px;border-radius:var(--r-md);border:1px solid var(--hairline);background:var(--surface);
+  color:var(--text);font:400 17px var(--font-ui);padding:0 var(--s4);outline:none;transition:border-color var(--dur) var(--ease)}
+.field:focus{border-color:var(--accent)}
+.field:disabled{opacity:.5}
+.say{margin:0;text-align:center;font-size:15px;color:var(--text-2);min-height:1.4em}
+.say b{color:var(--text);font-weight:600}
+.say.good b{color:var(--good)}
+.say.bad b{color:var(--danger)}
+.actions .btn{padding:0 var(--s4)}
+.actions .choice{flex:1;max-width:140px;padding:0 var(--s2);font-size:15px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);margin:var(--s3) 0}
+.row span{font-size:15px}
+.note{font-size:13px;color:var(--text-2)}
+.sheet-bd ul{padding-left:20px;margin:var(--s2) 0}
+.sheet-bd li{margin:4px 0}
+@media (min-width:900px){
+  .game{max-width:none;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:var(--s6);align-items:center}
+  .col-board{order:0}.col-play{order:1}
+}
+
+/* ----- play surface: the TriBond board, dice and Threezer card ----- */
+.surface{--tb-board:#2a1a5e;--tb-board-2:#3b2785;--tb-edge:#170d3a;--tb-gold:#f5c542;--tb-space:#f6f0de;
+  --tb-ink:#1d1440;--tb-you:#ff3b5c;--tb-cpu:#3a86ff;
+  --c-E:#e5383b;--c-A:#1f7ae0;--c-S:#2a9d4b;--c-W:#f28c18;--c-L:#8e3bd1;--c-F:#1d1440}
+.surface .board{width:100%;height:auto;display:block;filter:drop-shadow(0 8px 24px rgba(23,13,58,.35))}
+.surface .board text{font-family:"Archivo",sans-serif}
+.surface .pawn{transition:transform 130ms cubic-bezier(.2,.8,.2,1)}
+.surface .hit{cursor:pointer}
+.surface .ghost{animation:tb-pulse 1s ease-in-out infinite alternate}
+.surface .pawn.lift .pbody{animation:tb-bob .7s ease-in-out infinite alternate}
+@keyframes tb-pulse{from{opacity:.35}to{opacity:1}}
+@keyframes tb-bob{to{transform:translateY(-3px)}}
+.surface .tray{display:flex;align-items:center;gap:12px}
+.surface .die{width:52px;height:52px;border-radius:12px;flex:none;display:grid;place-items:center;
+  font:900 26px/1 "Archivo",sans-serif;color:#fff;background:var(--tb-board);
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.25),0 3px 8px rgba(23,13,58,.25)}
+.surface .die.blank{opacity:.35}
+.surface .die.numd{background:#fffdf6;color:var(--tb-ink);display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);
+  padding:8px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.12),0 3px 8px rgba(23,13,58,.25)}
+.surface .pip{width:9px;height:9px;border-radius:50%;background:var(--tb-ink);place-self:center}
+.surface .die.roll{animation:tb-shake 90ms linear infinite}
+@keyframes tb-shake{0%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}100%{transform:rotate(-8deg)}}
+.surface .catname{font:800 13px/1.2 "Archivo",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--text-2)}
+.surface .catname b{display:block;color:var(--text);font-size:15px;letter-spacing:.04em}
+.surface .card{background:#fffdf6;color:var(--tb-ink);border-radius:14px;overflow:hidden;
+  box-shadow:0 1px 0 rgba(0,0,0,.06),0 10px 28px rgba(23,13,58,.18);font-family:"Archivo",sans-serif}
+.surface .card .band{--cat:var(--tb-board);background:var(--cat);color:#fff;padding:9px 14px;display:flex;
+  justify-content:space-between;align-items:center;font:800 12px/1 "Archivo",sans-serif;letter-spacing:.12em;text-transform:uppercase}
+.surface .card .band .logo{display:flex;align-items:center;gap:6px;letter-spacing:.06em}
+.surface .card ol{list-style:none;margin:0;padding:4px 14px}
+.surface .card li{display:flex;align-items:center;gap:12px;min-height:44px;font:700 20px/1.15 "Archivo",sans-serif;
+  border-bottom:1px dashed rgba(29,20,64,.16);opacity:0;transform:translateY(6px);
+  transition:opacity 260ms cubic-bezier(.2,.8,.2,1),transform 260ms cubic-bezier(.2,.8,.2,1)}
+.surface .card li:last-child{border-bottom:0}
+.surface .card li.in{opacity:1;transform:none}
+.surface .card li .n{flex:none;width:24px;height:22px;display:grid;place-items:center;font:900 12px/1 "Archivo",sans-serif;color:#fff;
+  background:var(--tb-board);clip-path:polygon(50% 0,100% 100%,0 100%);padding-top:6px}
+.surface .card .bond{padding:10px 14px 12px;background:#f2ead2;border-top:1px solid rgba(29,20,64,.1);
+  font:500 13px/1.2 "Archivo",sans-serif;color:#6a6080;text-transform:uppercase;letter-spacing:.08em;min-height:48px}
+.surface .card .bond b{display:block;margin-top:3px;font:800 19px/1.2 "Archivo",sans-serif;color:var(--tb-ink);text-transform:none;letter-spacing:0}
+.surface .card .bond.hide b{visibility:hidden}
+.surface .card .idle{padding:22px 14px;text-align:center;font:700 17px/1.3 "Archivo",sans-serif;color:#6a6080}
+.surface .card .idle strong{display:block;font:900 26px/1.1 "Archivo",sans-serif;color:var(--tb-ink);letter-spacing:.02em;margin-bottom:4px}
+@media (prefers-reduced-motion:reduce){.surface .ghost,.surface .pawn.lift .pbody,.surface .die.roll{animation:none}}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <a class="back" href="../">← All games</a>
+  <h1 class="title">Tri-Bond</h1>
+  <div class="hdr-actions">
+    <button class="icon-btn" aria-label="Stats" data-open="stats"><svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></button>
+    <button class="icon-btn" aria-label="Settings" data-open="settings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+    <button class="icon-btn" aria-label="Rules" data-open="rules"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg></button>
+  </div>
+</header>
+<p class="status" id="status" aria-live="polite"></p>
+<main class="main">
+  <div class="game surface">
+    <div class="col-play">
+      <div class="players">
+        <div class="pill" id="pill0"><i style="background:var(--tb-you)"></i><b>You</b><span class="num" id="home0">0/3 home</span></div>
+        <div class="pill" id="pill1"><i style="background:var(--tb-cpu)"></i><b>Computer</b><span class="num" id="home1">0/3 home</span></div>
+      </div>
+      <div class="tray">
+        <div class="die blank" id="dieCat">?</div>
+        <div class="die numd blank" id="dieNum"></div>
+        <div class="catname" id="catName">Category<b>Roll to draw</b></div>
+      </div>
+      <div class="card" id="card"></div>
+      <div class="answer" id="answerBox">
+        <input class="field" id="guess" type="text" placeholder="What do these three have in common?" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" disabled>
+        <p class="say" id="say"></p>
+      </div>
+    </div>
+    <div class="col-board">
+      <svg class="board" id="board" viewBox="0 0 360 332" role="img" aria-label="Tri-Bond board"></svg>
+    </div>
+  </div>
+</main>
+<nav class="actions" id="actions"></nav>
+
+<dialog class="sheet" id="rules">
+  <div class="sheet-hd"><h2>How to play</h2><button class="btn btn-plain" data-close>Done</button></div>
+  <div class="sheet-bd">
+    <h3>Goal</h3>
+    <p>Be the first to move all three of your pawns around their paths and into the Home spaces. You play red; the computer plays blue.</p>
+    <h3>A turn</h3>
+    <ul>
+      <li>Roll the category die and the number die.</li>
+      <li>You get a Threezer from that category: three clues that share a bond. Type the bond and tap Check, or tap Reveal and grade yourself.</li>
+      <li>Right answer: move one pawn forward by the number rolled. A roll can't be split between pawns.</li>
+      <li>Wrong answer: you don't move. Play passes.</li>
+      <li>Free roll (★): no riddle — just move.</li>
+    </ul>
+    <h3>Moving</h3>
+    <ul>
+      <li>Each pawn stays on its own path and moves clockwise: 17 spaces, then Home.</li>
+      <li>Pawns can't share a space. Land on an occupied space and you move on to the next open one.</li>
+      <li>You don't need an exact roll to get Home.</li>
+    </ul>
+    <h3>Categories</h3>
+    <p>Entertainment, Academics, Sports, Wordplay and Loose Connections. Wordplay bonds are often a hidden word: "Butter, Dragon, Fire" → words before <i>fly</i>.</p>
+    <h3>Two-player game</h3>
+    <p>As in the official two-player rules, Challenges and stealing are left out. Short game uses one path instead of three.</p>
+  </div>
+</dialog>
+
+<dialog class="sheet" id="stats">
+  <div class="sheet-hd"><h2>Statistics</h2><button class="btn btn-plain" data-close>Done</button></div>
+  <div class="sheet-bd">
+    <div class="stats" id="statGrid"></div>
+  </div>
+</dialog>
+
+<dialog class="sheet" id="settings">
+  <div class="sheet-hd"><h2>Settings</h2><button class="btn btn-plain" data-close>Done</button></div>
+  <div class="sheet-bd">
+    <div class="row"><span>Game length</span><div class="seg" id="segLen"><button data-v="3">Full</button><button data-v="1">Short</button></div></div>
+    <div class="row"><span>Computer</span><div class="seg" id="segLvl"><button data-v="0">Easy</button><button data-v="1">Normal</button><button data-v="2">Hard</button></div></div>
+    <p class="note">Full uses all three paths. Short uses one. Changes apply to the next game.</p>
+    <button class="btn btn-tinted" id="newGameBtn" style="width:100%;margin-top:var(--s3)">Start a new game</button>
+  </div>
+</dialog>
+
+<dialog class="sheet" id="over">
+  <div class="sheet-hd"><h2>Game over</h2><button class="btn btn-plain" data-close>Done</button></div>
+  <div class="sheet-bd">
+    <div class="result" id="overResult"></div>
+    <div class="stats" id="overStats"></div>
+    <button class="btn btn-primary" id="againBtn" style="width:100%;margin-top:var(--s5)">Play again</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/*LOGIC-START*/
+// ---------- Threezer deck ----------
+// Category | clue; clue; clue | answer shown | accepted answers ("/" between alternatives; every word of an alternative must appear;
+// "~word" matches inside a longer word, "word*" matches a word that starts with it)
+const DECK_SRC = `
+E|Dorothy;Toto;Tin Man|Characters in The Wizard of Oz|oz/wizard
+E|Luke;Leia;Han|Star Wars characters|star war
+E|Simba;Mufasa;Scar|The Lion King|lion king
+E|Ross;Rachel;Chandler|Characters on Friends|friend
+E|Homer;Marge;Bart|The Simpsons|simpson
+E|Oscar;Emmy;Grammy|Entertainment awards|award/trophy/trophie
+E|Mario;Luigi;Bowser|Super Mario characters|mario/nintendo
+E|Woody;Buzz;Jessie|Toy Story characters|toy story
+E|Doc;Grumpy;Sneezy|The Seven Dwarfs|dwarf/dwarve/snow white
+E|Paul;John;Ringo|The Beatles|beatle
+E|Hogwarts;Quidditch;Muggle|Harry Potter|potter/hogwart
+E|Jaws;E.T.;Jurassic Park|Steven Spielberg films|spielberg
+E|Kirk;Spock;McCoy|Star Trek characters|star trek
+E|Guitar;Violin;Harp|String instruments|string
+E|Monopoly;Scrabble;Clue|Board games|board game/boardgame
+E|Jeopardy!;Wheel of Fortune;The Price Is Right|TV game shows|game show/gameshow/quiz show
+E|Kermit;Miss Piggy;Fozzie|The Muppets|muppet
+E|Elvis;Madonna;Prince|Singers known by one name|one name/first name/mononym/single name
+E|Tango;Waltz;Salsa|Dances|dance/dancing
+E|Batman;Superman;Wonder Woman|DC superheroes|dc/justice league/superhero/super hero
+E|Iron Man;Thor;Hulk|The Avengers|avenger/marvel
+E|Gotham;Metropolis;Springfield|Fictional cities|fictional/fake city/imaginary
+E|Bugs Bunny;Daffy Duck;Porky Pig|Looney Tunes characters|looney/warner
+E|Fred;Wilma;Barney|The Flintstones|flintstone
+E|Mickey;Minnie;Goofy|Disney characters|disney
+E|Dumbo;Bambi;Pinocchio|Disney animated films|disney
+E|Bond;Bourne;Jack Ryan|Movie spies|spy/spie/agent/secret
+E|Titanic;Avatar;The Terminator|James Cameron films|cameron
+E|Hollywood;Bollywood;Nollywood|Film industries|film/movie/cinema
+E|Netflix;Hulu;Disney+|Streaming services|stream*
+E|Sitcom;Soap opera;Reality show|Kinds of TV shows|tv/television/show genre
+E|Drummer;Bassist;Lead singer|Members of a band|band/group
+E|Tuba;Trumpet;Trombone|Brass instruments|brass/horn
+E|Joker;Riddler;Penguin|Batman villains|batman
+E|Belle;Ariel;Jasmine|Disney princesses|princess
+E|Sherlock;Poirot;Columbo|Fictional detectives|detective/sleuth/investigator
+E|Michael;Janet;Jermaine|The Jackson family|jackson
+E|Carson;Letterman;Leno|Late-night talk show hosts|late night/talk show/tonight show/host
+E|Grease;Cats;Hamilton|Broadway musicals|musical/broadway
+E|Pac-Man;Tetris;Pong|Classic video games|video game/arcade/videogame
+E|Hearts;Spades;Poker|Card games|card
+E|Popcorn;Previews;Ticket stub|Things at a movie theater|movie/theater/theatre/cinema
+E|Shrek;Donkey;Fiona|Shrek characters|shrek
+E|Rock;Jazz;Country|Music genres|music/genre
+E|Cinderella;Sleeping Beauty;Snow White|Fairy tales|fairy/princess/disney
+A|Mercury;Venus;Mars|Planets|planet
+A|Hydrogen;Helium;Oxygen|Gases (chemical elements)|gas/gase/element
+A|Iron;Copper;Gold|Metals|metal/element
+A|Nile;Amazon;Mississippi|Rivers|river
+A|Everest;K2;Kilimanjaro|Mountains|mountain/peak
+A|Sahara;Gobi;Mojave|Deserts|desert
+A|Washington;Lincoln;Jefferson|Faces on Mount Rushmore|rushmore/president
+A|Pacific;Atlantic;Indian|Oceans|ocean
+A|Hamlet;Macbeth;Othello|Shakespeare tragedies|shakespeare/tragedy/tragedie
+A|Noun;Verb;Adjective|Parts of speech|speech/grammar
+A|Triangle;Square;Pentagon|Polygons|polygon/shape
+A|Sine;Cosine;Tangent|Trigonometry functions|trig*
+A|Femur;Tibia;Fibula|Leg bones|bone
+A|Heart;Liver;Lungs|Organs|organ
+A|Zeus;Hera;Poseidon|Greek gods|greek/olympian
+A|Thor;Odin;Loki|Norse gods|norse/viking
+A|Aries;Leo;Virgo|Signs of the zodiac|zodiac/astrolog*/star sign/horoscope
+A|Cumulus;Stratus;Cirrus|Clouds|cloud
+A|Igneous;Sedimentary;Metamorphic|Types of rock|rock
+A|Nucleus;Mitochondria;Ribosome|Parts of a cell|cell/organelle
+A|Paris;Rome;Madrid|European capitals|capital
+A|Euro;Yen;Peso|Currencies|currenc*/money
+A|Mozart;Bach;Beethoven|Composers|composer/classical
+A|Picasso;Monet;Van Gogh|Painters|painter/artist/painting
+A|Tokyo;Seoul;Beijing|Asian capitals|capital
+A|Alaska;Texas;California|Largest U.S. states by area|largest/biggest/large state
+A|Celsius;Fahrenheit;Kelvin|Temperature scales|temperature
+A|Newton;Einstein;Galileo|Physicists|physicist/scientist/physic
+A|Prime;Even;Odd|Kinds of numbers|number
+A|Equator;Prime Meridian;Tropic of Cancer|Imaginary lines on the globe|line/latitude/longitude/map/globe
+A|Magna Carta;Declaration of Independence;Constitution|Historic documents|document/charter
+A|Columbus;Magellan;Cook|Explorers|explorer/navigator
+A|Haiku;Sonnet;Limerick|Forms of poetry|poem/poetry/poetic
+A|Python;Java;Ruby|Programming languages|programming/coding/code/computer language/software
+A|Proton;Neutron;Electron|Parts of an atom|atom*/subatomic/particle
+A|Crust;Mantle;Core|Layers of the Earth|earth/layer/planet
+A|Herbivore;Carnivore;Omnivore|What animals eat|diet/eat/~vore/food
+A|Mammal;Reptile;Amphibian|Classes of animals|animal/class/vertebrate
+A|Sphinx;Pyramids;Pharaoh|Ancient Egypt|egypt*
+A|Gettysburg;Antietam;Bull Run|Civil War battles|civil war
+A|Tundra;Rainforest;Savanna|Biomes|biome/ecosystem/habitat/climate/environment
+A|Isosceles;Scalene;Equilateral|Triangles|triangle
+A|Mona Lisa;Venus de Milo;The Thinker|Famous artworks in Paris|art/paris/sculpture/masterpiece
+A|Lewis;Clark;Sacagawea|Lewis and Clark Expedition|expedition/explorer/corps discovery
+A|Abraham;Isaac;Jacob|Biblical patriarchs|patriarch/bible/biblical/genesis
+A|Sonar;Laser;Scuba|Acronyms|acronym/abbreviation/initial
+S|Bat;Glove;Base|Baseball|baseball/softball
+S|Puck;Stick;Rink|Hockey|hockey
+S|Touchdown;Field goal;Safety|Ways to score in football|football
+S|Love;Deuce;Ace|Tennis terms|tennis
+S|Birdie;Eagle;Bogey|Golf scores|golf
+S|Jab;Hook;Uppercut|Boxing punches|boxing/punch/boxer
+S|Slam dunk;Free throw;Layup|Basketball shots|basketball
+S|Butterfly;Backstroke;Freestyle|Swimming strokes|swim*/stroke
+S|Strike;Spare;Gutter|Bowling|bowling
+S|Yankees;Red Sox;Dodgers|Baseball teams|baseball/mlb
+S|Lakers;Celtics;Bulls|Basketball teams|basketball/nba
+S|Packers;Cowboys;Steelers|Football teams|football/nfl
+S|Gold;Silver;Bronze|Olympic medals|medal/olympic/place
+S|Pitcher;Catcher;Shortstop|Baseball positions|baseball/softball
+S|Quarterback;Linebacker;Tight end|Football positions|football
+S|Wimbledon;U.S. Open;French Open|Tennis Grand Slams|tennis/grand slam
+S|Masters;British Open;PGA Championship|Golf majors|golf
+S|Kentucky Derby;Preakness;Belmont|The Triple Crown|triple crown/horse rac*
+S|Slalom;Moguls;Downhill|Skiing|ski*
+S|Pommel horse;Rings;Balance beam|Gymnastics|gymnast*
+S|Michael Jordan;LeBron James;Kobe Bryant|Basketball stars|basketball/nba
+S|Babe Ruth;Hank Aaron;Willie Mays|Baseball legends|baseball/home run
+S|Roger Federer;Serena Williams;Rafael Nadal|Tennis champions|tennis
+S|Tiger Woods;Jack Nicklaus;Arnold Palmer|Golfers|golf*
+S|Wayne Gretzky;Mario Lemieux;Sidney Crosby|Hockey players|hockey/nhl
+S|Pelé;Messi;Ronaldo|Soccer stars|soccer/football/futbol
+S|Corner kick;Header;Offside|Soccer|soccer/football/futbol
+S|Ollie;Kickflip;Grind|Skateboarding tricks|skate*
+S|Hat trick;Power play;Face-off|Hockey terms|hockey
+S|Huddle;Snap;Blitz|Football terms|football
+S|Fastball;Curveball;Slider|Baseball pitches|pitch/baseball
+S|Spike;Dig;Set|Volleyball|volleyball
+S|Rook;Bishop;Knight|Chess pieces|chess
+S|Marathon;Sprint;Relay|Running races|run*/race/track
+S|Discus;Javelin;Shot put|Throwing events|throw*/field/track
+S|Pit stop;Checkered flag;Pole position|Auto racing|rac*/nascar/formula/car
+S|Stanley Cup;Lombardi Trophy;Claret Jug|Championship trophies|trophy/trophie/champion*/award/prize
+S|Sumo;Judo;Karate|Japanese combat sports|japan*/martial/combat/fight*/wrestl*
+S|Paddle;Dink;Kitchen|Pickleball|pickleball
+S|Tee;Fairway;Green|Parts of a golf hole|golf
+S|Bench press;Deadlift;Squat|Weightlifting|lift*/weight*/gym/strength
+S|Super Bowl;World Series;Stanley Cup Final|Championship series and games|championship/final
+S|Swim;Bike;Run|Triathlon|triathlon/ironman
+S|Lane;Starting block;Lap|Swimming|swim*/pool/race/track
+S|Bullseye;Oche;Treble 20|Darts|dart
+S|Caddie;Putter;Divot|Golf|golf
+W|Butter;Dragon;Fire|Words before "fly"|~fly
+W|Sun;Moon;Star|Words before "light"|~light
+W|Foot;Basket;Base|Words before "ball"|~ball
+W|Cup;Pan;Cheese|Words before "cake"|~cake
+W|Snow;Super;Spider|Words before "man"|man/men/~man
+W|Rain;Cross;El|Words before "bow"|~bow
+W|Butter;Pea;Coco|Words before "nut"|~nut
+W|Book;Earth;Silk|Words before "worm"|~worm
+W|Pine;Crab;Big|Words before "apple"|~apple
+W|Hot;Corn;Bull|Words before "dog"|~dog
+W|Tooth;Hair;Paint|Words before "brush"|~brush
+W|Sand;Mail;Tool|Words before "box"|~box
+W|Bed;Class;Bath|Words before "room"|~room
+W|Rattle;King;Garter|Words before "snake"|~snake
+W|Black;Blue;Straw|Words before "berry"|~berr
+W|Cloth;Spoon;Top|Words after "table"|table
+W|Fall;Melon;Proof|Words after "water"|water
+W|Ache;Line;Phone|Words after "head"|head
+W|Flower;Burn;Glasses|Words after "sun"|sun
+W|Works;Place;Truck|Words after "fire"|fire
+W|Coat;Drop;Forest|Words after "rain"|rain
+W|Print;Note;Step|Words after "foot"|foot
+W|Kayak;Racecar;Level|Palindromes|palindrom*/backward/reverse
+W|Listen;Silent;Enlist|Anagrams of each other|anagram/same letter/rearrange
+W|Duck;Bear;Crane|Animals that are also verbs|verb/action
+W|Ruby;Jade;Pearl|Gems that are also names|name
+W|Scarlet;Planet;Business|Words hiding vehicles (car, plane, bus)|vehicle/transport*/car plane bus
+W|China;Legend;Charm|Words hiding body parts (chin, leg, arm)|body
+W|Post;Credit;Report|Words before "card"|~card
+W|Pop;Candy;Uni|Words before "corn"|~corn
+W|Light;Green;Dog|Words before "house"|~house
+W|Friend;Battle;Space|Words before "ship"|~ship
+W|Skate;Key;Card|Words before "board"|~board
+W|Record;Heart;Promise|Things you can break|break/broke*
+W|Cold;Breath;Flight|Things you can catch|catch/caught
+W|Errand;Fever;Marathon|Things you can run|run/ran
+W|Piano;Map;Keyboard|Things with keys|key
+W|Comb;Saw;Zipper|Things with teeth|teeth/tooth
+W|Needle;Potato;Hurricane|Things with eyes that can't see|eye
+W|Clock;Coin;Cliff|Things with a face|face
+W|Dog;Tree;Seal|Things that bark|bark
+W|Elephant;Tree;Car|Things with a trunk|trunk
+W|Book;Cactus;Porcupine|Things with spines|spine
+W|Fish;Piano;Map|Things with scales|scale
+W|Nose;Guitar;Ship|Things with a bridge|bridge
+W|Apple;Dipper;Foot|Words after "big"|big
+W|Turtle;Egg;Taco|Things with a shell|shell
+W|Giraffe;Guitar;Bottle|Things with a neck|neck
+W|River;Flower;Truck|Words before "bed"|~bed
+L|Penguin;Zebra;Chessboard|Black and white|black white
+L|Fire truck;Strawberry;Stop sign|Red things|red
+L|Banana;School bus;Lemon|Yellow things|yellow
+L|Frog;Emerald;Lime|Green things|green
+L|Snowman;Ice cube;Popsicle|Things that melt|melt
+L|Candle;Match;Fireworks|Things you light|light
+L|Spider;Octopus;Scorpion|Eight legs (or arms)|8
+L|Tricycle;Triangle;Triplets|Threes|3/tri
+L|Clock;Ruler;Scale|Measuring tools|measur*
+L|Coffee;Tea;Hot cocoa|Hot drinks|hot drink/drink/beverage/hot
+L|Bee;Wasp;Jellyfish|Things that sting|sting
+L|Kite;Balloon;Airplane|Things that fly|fly/flie/flight/air
+L|Rose;Cactus;Porcupine|Prickly things|prick*/thorn/sharp/spike/spine/needle/poke/pointy
+L|Sponge;Paper towel;Diaper|Absorbent things|absorb*/soak/wet
+L|Cheetah;Leopard;Giraffe|Spotted animals|spot/spotted
+L|Tiger;Zebra;Skunk|Striped animals|stripe*
+L|Owl;Bat;Raccoon|Nocturnal animals|nocturnal/night
+L|Snake;Lizard;Tarantula|Things that shed their skin|shed/molt
+L|Hammer;Screwdriver;Wrench|Tools|tool
+L|Fork;Knife;Spoon|Utensils|utensil/silverware/cutlery/flatware
+L|Igloo;Tent;Castle|Places to live|home/house/shelter/dwelling/live
+L|Lighthouse;Firefly;Turn signal|Things that flash|flash/blink/light
+L|Volcano;Geyser;Shaken soda|Things that erupt|erupt*/explode/burst/blow/spew
+L|Yo-yo;Elevator;Seesaw|Things that go up and down|up down
+L|Bread;Dough;Soufflé|Things that rise|rise/rising
+L|Piggy bank;Vault;Wallet|Places to keep money|money/cash/save
+L|Rooster;Alarm clock;Sunrise|Things that wake you up|wake/morning
+L|Cactus;Camel;Sand dune|Things in a desert|desert
+L|Apple;Blackberry;Orange|Fruits that are company names|company/brand/phone/tech/business
+L|Chicken;Duck;Turkey|Poultry|poultry/fowl/bird
+L|Tooth Fairy;Easter Bunny;Santa Claus|Gift-bringers of childhood|gift/present/myth*/legend/pretend/imaginary/childhood/fake
+L|Diamond;Ice;Glass|Clear things|clear/transparent/see through
+L|Mirror;Echo;Photocopier|Things that copy|copy/copie/repeat/reflect/duplicate/mimic/replica
+L|Wedding;Birthday;Graduation|Celebrations with cake|celebrat*/party/cake/occasion/milestone
+L|Hourglass;Beach;Sandbox|Things with sand|sand
+L|Nest;Hive;Den|Animal homes|home/house/habitat
+L|Ladder;Escalator;Stairs|Ways to climb|climb/up/step/stair
+L|Chimney;Dragon;Campfire|Things that smoke|smoke
+L|Deck of cards;Year (in weeks);White piano keys|Fifty-two|52/fifty two
+L|Dozen eggs;Months in a year;Jury|Twelve|12/dozen
+L|Swiss cheese;Sponge;Colander|Things full of holes|hole
+L|Banana;Orange;Egg|Things you peel|peel
+L|Ice skate;Razor;Lawn mower|Things with blades|blade
+L|Nail;Lettuce;Hammer|Things with heads|head
+L|Leaves;Rain;Snow|Things that fall|fall
+L|Doorbell;Telephone;Church bell|Things that ring|ring
+L|Pumpkin;Witch;Ghost|Halloween|halloween
+L|Tree;Ornament;Stocking|Christmas|christma/xmas/holiday
+L|Kangaroo;Grasshopper;Frog|Animals that hop|hop/jump/leap/bounce
+`;
+const CATS = {E:'Entertainment',A:'Academics',S:'Sports',W:'Wordplay',L:'Loose Connections'};
+const CAT_FACES = ['E','A','S','W','L','F']; // six-sided category die, F = free roll
+const NUMW = {zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,twenty:20,thirty:30,forty:40,fifty:50};
+
+function stem(t){
+  if (t.length>4 && t.endsWith('ies')) return t.slice(0,-3)+'y';
+  if (t.length>3 && t.endsWith('s') && !t.endsWith('ss') && !t.endsWith('us')) return t.slice(0,-1);
+  return t;
+}
+function tokens(s){
+  s = String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/&/g,' and ').replace(/[^a-z0-9 ]+/g,' ');
+  return s.split(/\s+/).filter(Boolean).map(t => { const w = stem(t); return NUMW[t]!=null ? String(NUMW[t]) : NUMW[w]!=null ? String(NUMW[w]) : w; });
+}
+function lev(a,b){
+  if (a===b) return 0;
+  const m=a.length,n=b.length; if(!m) return n; if(!n) return m;
+  let prev=Array.from({length:n+1},(_,i)=>i), cur=new Array(n+1);
+  for(let i=1;i<=m;i++){cur[0]=i;for(let j=1;j<=n;j++){cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));}[prev,cur]=[cur,prev];}
+  return prev[n];
+}
+function parseKey(raw){
+  let mode='eq', w=raw;
+  if (w.startsWith('~')) { mode='sub'; w=w.slice(1); }
+  else if (w.endsWith('*')) { mode='pre'; w=w.slice(0,-1); }
+  const t = mode==='eq' ? (tokens(w)[0]||w) : w.toLowerCase();
+  return {mode, t};
+}
+function parseAccept(s){ return s.split('/').map(alt => alt.trim().split(/\s+/).map(parseKey)); }
+function tokMatch(k,g){
+  if (k.mode==='sub') return g.includes(k.t);
+  if (k.mode==='pre') return g.startsWith(k.t);
+  if (g===k.t) return true;
+  if (/^\d+$/.test(k.t)) return false;
+  if (k.t.length<5) return false;
+  const d = lev(k.t,g);
+  return (d<=1 && g.length>=k.t.length) || (k.t.length>=8 && d<=2);
+}
+function isCorrect(guess, accept){
+  const gt = tokens(guess); if(!gt.length) return false;
+  return accept.some(alt => alt.every(k => gt.some(g => tokMatch(k,g))));
+}
+function buildDeck(src){
+  return src.trim().split('\n').map((line,id) => {
+    const [cat,clues,answer,acc] = line.split('|');
+    return {id, cat, clues:clues.split(';').map(s=>s.trim()), answer:answer.trim(), accept:parseAccept(acc.trim())};
+  });
+}
+
+// ---------- board movement ----------
+const SPACES = 17, HOME = SPACES + 1; // 0 = start, 1..17 = spaces, 18 = home
+function destination(pos, roll, oppPos){
+  if (pos >= HOME) return null;
+  let d = Math.min(HOME, pos + roll);
+  while (d < HOME && d === oppPos) d++;
+  return d;
+}
+function movable(pos, paths){ return paths.filter(p => pos[p] < HOME); }
+function chooseAI(myPos, oppPos, roll, paths){
+  let best=null, bestScore=-1e9;
+  for (const p of movable(myPos, paths)){
+    const d = destination(myPos[p], roll, oppPos[p]);
+    const gain = d - myPos[p];
+    const exact = (d===HOME && myPos[p]+roll===HOME) ? 0.5 : 0;
+    const score = gain*10 + exact - myPos[p]*0.01; // most progress, then exact finish, then the pawn furthest behind
+    if (score > bestScore){ bestScore=score; best=p; }
+  }
+  return best;
+}
+function allHome(pos, paths){ return paths.every(p => pos[p] >= HOME); }
+/*LOGIC-END*/
+
+// ---------- app ----------
+const DECK = buildDeck(DECK_SRC);
+const KEY = 'tri-bond.v1';
+const LEVELS = [0.42, 0.58, 0.74]; // computer's chance to solve a Threezer
+const $ = s => document.querySelector(s);
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sleep = ms => new Promise(r => setTimeout(r, reduced ? Math.min(ms, 120) : ms));
+const buzz = () => { try { navigator.vibrate && navigator.vibrate(10); } catch(e){} };
+
+let store = load();
+function load(){
+  let s=null; try { s = JSON.parse(localStorage.getItem(KEY)); } catch(e){}
+  s = s && typeof s==='object' ? s : {};
+  s.stats = Object.assign({games:0,wins:0,streak:0,best:0,tried:0,solved:0}, s.stats||{});
+  s.settings = Object.assign({len:3,lvl:1}, s.settings||{});
+  s.used = Array.isArray(s.used) ? s.used : [];
+  return s;
+}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e){} }
+
+let G = null;        // current game
+let gameToken = 0;   // cancels stale async turns
+let busy = false;
+
+// ---------- board drawing ----------
+const SVGNS = 'http://www.w3.org/2000/svg';
+const CORN = [[180,10],[350,320],[10,320]];   // top, right, left (clockwise)
+const PATH_NAMES = ['Top','Right','Left'];
+const PATH_COLORS = ['#f5c542','#4ade80','#c084fc'];
+const CEN = [(CORN[0][0]+CORN[1][0]+CORN[2][0])/3, (CORN[0][1]+CORN[1][1]+CORN[2][1])/3];
+const GEO = CORN.map(V => {
+  const dx=V[0]-CEN[0], dy=V[1]-CEN[1], D=Math.hypot(dx,dy), u=[dx/D,dy/D], n=[u[1],-u[0]];
+  const M=[CEN[0]+u[0]*D*0.49, CEN[1]+u[1]*D*0.49], A=D*0.35, B=A*0.56, f0=0.34;
+  const pts=[];
+  for(let i=0;i<=SPACES;i++){
+    const f=f0+i*(2*Math.PI-2*f0)/SPACES;
+    pts.push([M[0]-u[0]*A*Math.cos(f)+n[0]*B*Math.sin(f), M[1]-u[1]*A*Math.cos(f)+n[1]*B*Math.sin(f)]);
+  }
+  pts.push(M); // home
+  return {u,n,M,A,B,pts,ang:Math.atan2(u[1],u[0])*180/Math.PI};
+});
+function el(tag, attrs, parent){ const e=document.createElementNS(SVGNS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
+const board = $('#board');
+let pawnEls = [[],[]], ghostLayer, hitLayer;
+function drawBoard(){
+  board.innerHTML='';
+  const defs = el('defs',{},board);
+  const lg = el('linearGradient',{id:'tbg',x1:0,y1:0,x2:0,y2:1},defs);
+  el('stop',{offset:0,'stop-color':'#3b2785'},lg); el('stop',{offset:1,'stop-color':'#22134f'},lg);
+  const tri = CORN.map(p=>p.join(',')).join(' ');
+  el('polygon',{points:tri,fill:'#170d3a',stroke:'#170d3a','stroke-width':22,'stroke-linejoin':'round'},board);
+  el('polygon',{points:tri,fill:'url(#tbg)',stroke:'#4a35a0','stroke-width':12,'stroke-linejoin':'round'},board);
+  el('polygon',{points:tri,fill:'none',stroke:'#f5c542','stroke-width':1.5,'stroke-linejoin':'round',opacity:.7},board);
+  // center emblem
+  const c=CEN, r=16;
+  el('polygon',{points:[0,1,2].map(k=>{const a=(-90+k*120)*Math.PI/180;return [c[0]+r*Math.cos(a),c[1]+r*Math.sin(a)].join(',')}).join(' '),fill:'none',stroke:'#f5c542','stroke-width':2,opacity:.85},board);
+  GEO.forEach((g,k)=>{
+    const active = G && G.paths.includes(k);
+    const grp = el('g',{opacity: active===false ? .28 : 1},board);
+    const col = PATH_COLORS[k];
+    // track band
+    el('ellipse',{cx:g.M[0],cy:g.M[1],rx:g.A,ry:g.B,transform:`rotate(${g.ang} ${g.M[0]} ${g.M[1]})`,fill:'none',stroke:'rgba(255,255,255,.08)','stroke-width':22},grp);
+    // home space
+    const hm=g.M, hr=25;
+    el('polygon',{points:[0,1,2].map(i=>{const a=(g.ang+i*120)*Math.PI/180;return [hm[0]+hr*Math.cos(a),hm[1]+hr*Math.sin(a)].join(',')}).join(' '),fill:col,stroke:'#170d3a','stroke-width':2,'stroke-linejoin':'round'},grp);
+    const t=el('text',{x:hm[0],y:hm[1]+1,'text-anchor':'middle','font-size':8.5,'font-weight':900,fill:'#1d1440','letter-spacing':'.06em'},grp); t.textContent=PATH_NAMES[k].toUpperCase();
+    const t2=el('text',{x:hm[0],y:hm[1]+8.5,'text-anchor':'middle','font-size':5.5,'font-weight':800,fill:'#1d1440','letter-spacing':'.14em',opacity:.75},grp); t2.textContent='HOME';
+    // arrow from last space into home
+    const L=g.pts[SPACES], dx=hm[0]-L[0], dy=hm[1]-L[1], dl=Math.hypot(dx,dy);
+    el('line',{x1:L[0]+dx/dl*11,y1:L[1]+dy/dl*11,x2:hm[0]-dx/dl*16,y2:hm[1]-dy/dl*16,stroke:col,'stroke-width':2.5,'stroke-linecap':'round','stroke-dasharray':'2 4'},grp);
+    // spaces
+    g.pts.slice(0,SPACES+1).forEach((p,i)=>{
+      if(i===0){
+        el('circle',{cx:p[0],cy:p[1],r:9.5,fill:col,stroke:'#170d3a','stroke-width':1.5},grp);
+        const s=el('text',{x:p[0],y:p[1]+3,'text-anchor':'middle','font-size':8,'font-weight':900,fill:'#1d1440'},grp); s.textContent='S';
+      } else {
+        el('circle',{cx:p[0],cy:p[1],r:8.5,fill:'#f6f0de',stroke:'#170d3a','stroke-width':1.5},grp);
+        if(i%5===0){ const s=el('text',{x:p[0],y:p[1]+2.6,'text-anchor':'middle','font-size':7,'font-weight':800,fill:'#8a7fa8'},grp); s.textContent=i; }
+      }
+    });
+    // path label near the outer tip
+  });
+  ghostLayer = el('g',{},board);
+  pawnEls=[[],[]];
+  const pawnLayer = el('g',{},board);
+  [0,1].forEach(pl=>{
+    [0,1,2].forEach(k=>{
+      const g=el('g',{class:'pawn'},pawnLayer);
+      const body=el('g',{class:'pbody'},g);
+      const fill = pl===0 ? '#ff3b5c' : '#3a86ff';
+      el('ellipse',{cx:0,cy:5,rx:6.5,ry:2.6,fill:'rgba(0,0,0,.35)'},body);
+      el('path',{d:'M-5.5 5 Q-5.5 1 -2.6 -1.5 L-2.6 -2.5 A3.8 3.8 0 1 1 2.6 -2.5 L2.6 -1.5 Q5.5 1 5.5 5 Z',fill,stroke:'#fff','stroke-width':1.4,'stroke-linejoin':'round'},body);
+      g.style.display = (G && G.paths.includes(k)) ? '' : 'none';
+      pawnEls[pl][k]=g;
+    });
+  });
+  hitLayer = el('g',{},board);
+  placeAll();
+}
+function pawnXY(pl, k, pos){
+  const g=GEO[k], p=g.pts[Math.min(pos,HOME)];
+  const off = pl===0 ? -1 : 1;
+  if (pos>=HOME){ // home pawns rest beside each other just past the Home triangle
+    return [p[0]+g.u[0]*34+g.n[0]*off*8, p[1]+g.u[1]*34+g.n[1]*off*8 - 3];
+  }
+  if (pos===0) return [p[0]+g.n[0]*off*7, p[1]+g.n[1]*off*7 - 3];
+  return [p[0], p[1]-3];
+}
+function setPawn(pl,k,pos){ const [x,y]=pawnXY(pl,k,pos); pawnEls[pl][k].style.transform=`translate(${x}px,${y}px)`; }
+function placeAll(){ if(!G) return; [0,1].forEach(pl=>G.paths.forEach(k=>setPawn(pl,k,G.pos[pl][k]))); }
+async function animateMove(pl,k,from,to){
+  for(let p=from+1;p<=to;p++){
+    setPawn(pl,k,p);
+    await sleep(p===to?140:115);
+  }
+  G.pos[pl][k]=to;
+  if (to !== Math.min(HOME, from+G.dice.num)) toast('Space taken — moved one ahead');
+}
+
+// ---------- UI helpers ----------
+const statusEl=$('#status'), sayEl=$('#say'), guessEl=$('#guess'), actionsEl=$('#actions'), cardEl=$('#card');
+function status(t){ statusEl.textContent=t; }
+function say(html, cls){ sayEl.innerHTML=html||''; sayEl.className='say'+(cls?' '+cls:''); }
+let toastTimer;
+function toast(t){ const e=$('#toast'); e.textContent=t; e.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>e.classList.remove('show'),2000); }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function setActions(list){
+  actionsEl.innerHTML='';
+  list.forEach(a=>{
+    if(a==='spacer'){ const s=document.createElement('div'); s.className='spacer'; actionsEl.appendChild(s); return; }
+    const b=document.createElement('button'); b.className='btn '+(a.cls||'btn-tinted'); b.textContent=a.label;
+    if(a.disabled) b.disabled=true; if(a.id) b.id=a.id;
+    b.addEventListener('click', a.fn); actionsEl.appendChild(b);
+  });
+}
+function updatePills(){
+  [0,1].forEach(pl=>{
+    const n=G.paths.filter(k=>G.pos[pl][k]>=HOME).length;
+    $('#home'+pl).textContent=`${n}/${G.paths.length} home`;
+    $('#pill'+pl).classList.toggle('on', G.turn===pl && G.phase!=='over');
+  });
+}
+const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+function showDice(cat,num){
+  const dc=$('#dieCat'), dn=$('#dieNum');
+  dc.classList.remove('blank'); dn.classList.remove('blank');
+  dc.textContent = cat==='F' ? '★' : cat;
+  dc.style.background = `var(--c-${cat})`;
+  dn.innerHTML=''; for(let i=0;i<9;i++){ const s=document.createElement('span'); if(PIPS[num].includes(i)) s.className='pip'; dn.appendChild(s); }
+  $('#catName').innerHTML = cat==='F' ? 'Free roll<b>Move '+num+'</b>' : 'Category<b>'+CATS[cat]+'</b>';
+}
+function blankDice(){
+  const dc=$('#dieCat'), dn=$('#dieNum'); dc.className='die blank'; dc.textContent='?'; dc.style.background=''; dn.className='die numd blank'; dn.innerHTML='';
+  $('#catName').innerHTML='Category<b>Roll to draw</b>';
+}
+async function rollDice(){
+  const cat = CAT_FACES[Math.floor(Math.random()*6)], num = 1+Math.floor(Math.random()*6);
+  const dc=$('#dieCat'), dn=$('#dieNum');
+  if(!reduced){
+    dc.classList.add('roll'); dn.classList.add('roll');
+    for(let i=0;i<7;i++){ showDice(CAT_FACES[Math.floor(Math.random()*6)], 1+Math.floor(Math.random()*6)); await sleep(70); }
+    dc.classList.remove('roll'); dn.classList.remove('roll');
+  }
+  showDice(cat,num);
+  return {cat,num};
+}
+function cardIdle(text){
+  cardEl.innerHTML = `<div class="band"><span class="logo">▲ Tri-Bond</span><span>Threezer</span></div><div class="idle"><strong>What do these 3 have in common?</strong>${esc(text)}</div>`;
+}
+function cardShow(r, hideAnswer){
+  cardEl.innerHTML = `<div class="band" style="--cat:var(--c-${r.cat})"><span class="logo">▲ ${esc(CATS[r.cat])}</span><span>Threezer</span></div>
+    <ol>${r.clues.map((c,i)=>`<li><span class="n">${i+1}</span><span>${esc(c)}</span></li>`).join('')}</ol>
+    <div class="bond${hideAnswer?' hide':''}">Bond<b>${esc(r.answer)}</b></div>`;
+}
+async function dealClues(){
+  const lis=[...cardEl.querySelectorAll('li')];
+  for(const li of lis){ await sleep(380); li.classList.add('in'); }
+}
+function revealAnswer(){ const b=cardEl.querySelector('.bond'); if(b) b.classList.remove('hide'); }
+function drawCard(cat){
+  const used=new Set(store.used);
+  let pool=DECK.filter(r=>r.cat===cat && !used.has(r.id));
+  if(!pool.length){ store.used=store.used.filter(id=>DECK[id] && DECK[id].cat!==cat); pool=DECK.filter(r=>r.cat===cat); }
+  const r=pool[Math.floor(Math.random()*pool.length)];
+  store.used.push(r.id); save();
+  return r;
+}
+
+// ---------- game flow ----------
+function newGame(){
+  gameToken++; busy=false;
+  const len = store.settings.len===1 ? 1 : 3;
+  G = {paths: len===1 ? [0] : [0,1,2], pos:[[0,0,0],[0,0,0]], turn:0, phase:'roll', dice:null, card:null,
+       tally:[{t:0,c:0},{t:0,c:0}], lvl:store.settings.lvl};
+  drawBoard(); blankDice(); cardIdle('Roll the dice to draw a card.'); say(''); guessEl.value=''; guessEl.disabled=true;
+  // roll the number die for first turn
+  let a,b; do { a=1+Math.floor(Math.random()*6); b=1+Math.floor(Math.random()*6); } while(a===b);
+  G.turn = a>b ? 0 : 1;
+  toast(`You rolled ${a}, computer rolled ${b}`);
+  delete store.game; save();
+  updatePills();
+  if (G.turn===0) humanReady(); else cpuTurn();
+}
+function humanReady(){
+  G.turn=0; G.phase='roll'; updatePills();
+  if(ghostLayer){ ghostLayer.innerHTML=''; hitLayer.innerHTML=''; pawnEls[0].forEach(p=>p.classList.remove('lift')); }
+  status('Your turn — roll the dice');
+  guessEl.disabled=true;
+  setActions(['spacer',{label:'Roll',cls:'btn-primary',fn:humanRoll,id:'rollBtn'}]);
+  store.game = JSON.parse(JSON.stringify({paths:G.paths,pos:G.pos,tally:G.tally,lvl:G.lvl})); save();
+}
+async function humanRoll(){
+  if(busy||G.phase!=='roll') return; busy=true; const tk=gameToken;
+  setActions([]); say(''); guessEl.value='';
+  G.dice = await rollDice(); if(tk!==gameToken) return;
+  if (G.dice.cat==='F'){
+    cardIdle('Free roll — no riddle this time.');
+    toast('Free roll'); busy=false; return humanChoose();
+  }
+  G.card = drawCard(G.dice.cat);
+  cardShow(G.card, true);
+  G.phase='answer';
+  status(`${CATS[G.dice.cat]} for ${G.dice.num}`);
+  await dealClues(); if(tk!==gameToken) return;
+  busy=false;
+  guessEl.disabled=false;
+  if (matchMedia('(pointer:fine)').matches) guessEl.focus();
+  answerActions();
+}
+function answerActions(){
+  setActions([{label:'Reveal',fn:humanReveal},'spacer',{label:'Check',cls:'btn-primary',fn:humanCheck,id:'checkBtn',disabled:!guessEl.value.trim()}]);
+}
+guessEl.addEventListener('input',()=>{ const b=$('#checkBtn'); if(b) b.disabled=!guessEl.value.trim(); });
+guessEl.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); if(guessEl.value.trim()) humanCheck(); }});
+function humanCheck(){
+  if(G.phase!=='answer') return;
+  const g=guessEl.value.trim(); if(!g) return;
+  guessEl.disabled=true; guessEl.blur(); revealAnswer();
+  if (isCorrect(g, G.card.accept)){
+    say(`<b>Correct</b> — ${esc(G.card.answer)}`,'good'); buzz(); toast('Correct');
+    return scoreHuman(true);
+  }
+  G.phase='judge';
+  say(`<b>Not quite.</b> You said “${esc(g)}”.`,'bad');
+  status('Close enough? You be the judge');
+  setActions([{label:'Count it',cls:'btn-plain',fn:()=>scoreHuman(true)},'spacer',{label:'Continue',cls:'btn-primary',fn:()=>scoreHuman(false)}]);
+}
+function humanReveal(){
+  if(G.phase!=='answer') return;
+  guessEl.disabled=true; guessEl.blur(); revealAnswer(); G.phase='judge';
+  say('Did you have it?');
+  status('Be honest');
+  setActions([{label:'I missed it',fn:()=>scoreHuman(false)},'spacer',{label:'I had it',cls:'btn-primary',fn:()=>scoreHuman(true)}]);
+}
+function scoreHuman(ok){
+  if(G.phase!=='answer' && G.phase!=='judge') return;
+  G.tally[0].t++; store.stats.tried++;
+  if(ok){ G.tally[0].c++; store.stats.solved++; save(); if(!sayEl.classList.contains('good')) say(`<b>Counted</b> — ${esc(G.card.answer)}`,'good'); return humanChoose(); }
+  save(); say(`<b>No move.</b> The bond: ${esc(G.card.answer)}`,'bad');
+  endTurn(0);
+}
+function humanChoose(){
+  const opts = movable(G.pos[0], G.paths);
+  if (opts.length===1) return humanMove(opts[0]);
+  G.phase='choose';
+  status(`Move a pawn ${G.dice.num} — tap a path`);
+  // ghosts + hit areas
+  ghostLayer.innerHTML=''; hitLayer.innerHTML='';
+  const btns=[];
+  opts.forEach(k=>{
+    const d=destination(G.pos[0][k], G.dice.num, G.pos[1][k]);
+    const [x,y]=pawnXY(0,k,d);
+    el('circle',{cx:x,cy:y+3,r:11,fill:'none',stroke:'#ff3b5c','stroke-width':2.5,class:'ghost'},ghostLayer);
+    pawnEls[0][k].classList.add('lift');
+    const g=GEO[k];
+    const hit=el('ellipse',{cx:g.M[0],cy:g.M[1],rx:g.A+14,ry:g.B+14,transform:`rotate(${g.ang} ${g.M[0]} ${g.M[1]})`,fill:'transparent',class:'hit','pointer-events':'all'},hitLayer);
+    hit.addEventListener('click',()=>humanMove(k));
+    btns.push({label:`${PATH_NAMES[k]} ${G.pos[0][k]===0?'S':G.pos[0][k]}→${d>=HOME?'Home':d}`,cls:'btn-tinted choice',fn:()=>humanMove(k)});
+  });
+  setActions(btns);
+  const bb=board.getBoundingClientRect(); if(bb.bottom>innerHeight-80 || bb.top<0) board.scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});
+}
+async function humanMove(k){
+  if(busy) return; busy=true; const tk=gameToken;
+  ghostLayer.innerHTML=''; hitLayer.innerHTML=''; pawnEls[0].forEach(p=>p.classList.remove('lift')); setActions([]);
+  const from=G.pos[0][k], to=destination(from,G.dice.num,G.pos[1][k]);
+  G.phase='move';
+  await animateMove(0,k,from,to); if(tk!==gameToken) return;
+  if(to>=HOME){ toast(`${PATH_NAMES[k]} pawn is home`); buzz(); }
+  busy=false; updatePills();
+  endTurn(0);
+}
+function endTurn(pl){
+  if (allHome(G.pos[pl], G.paths)) return gameOver(pl);
+  if (pl===0){
+    G.phase='wait';
+    setActions(['spacer',{label:'Computer’s turn',cls:'btn-primary',fn:()=>cpuTurn()}]);
+    status('Your turn is over');
+  } else humanReady();
+}
+async function cpuTurn(){
+  if(busy) return; busy=true; const tk=gameToken;
+  G.turn=1; G.phase='cpu'; updatePills(); setActions([]); guessEl.value=''; guessEl.disabled=true; say('');
+  status('Computer’s turn');
+  await sleep(350); if(tk!==gameToken) return;
+  G.dice = await rollDice(); if(tk!==gameToken) return;
+  let ok;
+  if (G.dice.cat==='F'){ cardIdle('Free roll for the computer.'); toast('Computer: free roll'); ok=true; await sleep(500); }
+  else {
+    G.card=drawCard(G.dice.cat); cardShow(G.card,true);
+    status(`Computer — ${CATS[G.dice.cat]} for ${G.dice.num}`);
+    await dealClues(); if(tk!==gameToken) return;
+    say('Computer is thinking…'); await sleep(1100); if(tk!==gameToken) return;
+    ok = Math.random() < LEVELS[G.lvl];
+    G.tally[1].t++; if(ok) G.tally[1].c++;
+    revealAnswer();
+    say(ok ? `Computer: <b>“${esc(G.card.answer)}”</b>` : `<b>Computer is stumped.</b>`, ok?'good':'bad');
+    await sleep(700); if(tk!==gameToken) return;
+  }
+  if (ok){
+    const k=chooseAI(G.pos[1], G.pos[0], G.dice.num, G.paths);
+    const from=G.pos[1][k], to=destination(from,G.dice.num,G.pos[0][k]);
+    await animateMove(1,k,from,to); if(tk!==gameToken) return;
+    if(to>=HOME) toast(`Computer’s ${PATH_NAMES[k].toLowerCase()} pawn is home`);
+    updatePills();
+  }
+  busy=false;
+  endTurn(1);
+}
+function gameOver(winner){
+  G.phase='over'; updatePills(); setActions(['spacer',{label:'New game',cls:'btn-primary',fn:newGame}]);
+  const st=store.stats; st.games++;
+  if(winner===0){ st.wins++; st.streak++; st.best=Math.max(st.best,st.streak); buzz(); } else st.streak=0;
+  delete store.game; save();
+  status(winner===0 ? 'You win!' : 'The computer wins');
+  $('#overResult').textContent = winner===0 ? 'You win!' : 'Computer wins';
+  $('#overStats').innerHTML = statHTML([[`${G.tally[0].c}/${G.tally[0].t}`,'You solved'],[`${G.tally[1].c}/${G.tally[1].t}`,'Computer solved'],[st.streak,'Win streak']]);
+  setTimeout(()=>openSheet('over'), reduced?50:700);
+}
+function statHTML(rows){ return rows.map(([b,s])=>`<div class="stat"><b class="num">${b}</b><span>${s}</span></div>`).join(''); }
+function renderStats(){
+  const s=store.stats;
+  $('#statGrid').innerHTML = statHTML([[s.games,'Played'],[s.games?Math.round(100*s.wins/s.games)+'%':'—','Win %'],[s.streak,'Current streak'],[s.best,'Best streak'],[s.solved,'Threezers solved'],[s.tried?Math.round(100*s.solved/s.tried)+'%':'—','Solve rate']]);
+}
+function resume(saved){
+  gameToken++; busy=false;
+  G={paths:saved.paths,pos:saved.pos,turn:0,phase:'roll',dice:null,card:null,tally:saved.tally,lvl:saved.lvl};
+  drawBoard(); blankDice(); cardIdle('Game resumed. Roll the dice to draw a card.'); say('');
+  updatePills(); humanReady();
+}
+
+// ---------- sheets & settings ----------
+function openSheet(id){ if(id==='stats') renderStats(); if(id==='settings') syncSegs(); const d=document.getElementById(id); if(!d.open) d.showModal(); }
+document.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>openSheet(b.dataset.open)));
+document.querySelectorAll('dialog.sheet').forEach(d=>{
+  d.addEventListener('click',e=>{ if(e.target===d) d.close(); });
+  d.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>d.close()));
+});
+function syncSegs(){
+  document.querySelectorAll('#segLen button').forEach(b=>b.setAttribute('aria-pressed', String(+b.dataset.v===store.settings.len)));
+  document.querySelectorAll('#segLvl button').forEach(b=>b.setAttribute('aria-pressed', String(+b.dataset.v===store.settings.lvl)));
+}
+document.querySelectorAll('#segLen button').forEach(b=>b.addEventListener('click',()=>{ store.settings.len=+b.dataset.v; save(); syncSegs(); }));
+document.querySelectorAll('#segLvl button').forEach(b=>b.addEventListener('click',()=>{ store.settings.lvl=+b.dataset.v; save(); syncSegs(); }));
+$('#newGameBtn').addEventListener('click',()=>{ $('#settings').close(); newGame(); });
+$('#againBtn').addEventListener('click',()=>{ $('#over').close(); newGame(); });
+
+// ---------- start ----------
+if (store.game && Array.isArray(store.game.pos) && Array.isArray(store.game.paths)) resume(store.game); else newGame();
+</script>
+</body>
+</html>
